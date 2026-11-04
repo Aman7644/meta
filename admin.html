@@ -188,9 +188,18 @@ body {
 
 /* ── RESP ── */
 @media (max-width: 768px) {
+  body { overflow-x: hidden; }
   .stats-row { grid-template-columns: 1fr 1fr; }
   .main { padding: 20px 14px 60px; }
   .tbl th:nth-child(n+4), .tbl td:nth-child(n+4) { display: none; }
+}
+@media (max-width: 480px) {
+  .nav { padding: 0 12px; }
+  .logo-sub { display: none; }
+  .nav-right { gap: 6px; flex-wrap: wrap; }
+  .btn { padding: 6px 10px; font-size: 11px; }
+  .lock-card { padding: 28px 18px; border-radius: 18px; }
+  .stats-row { grid-template-columns: 1fr; }
 }
 </style>
 </head>

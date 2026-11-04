@@ -560,8 +560,15 @@ body {
   .streak-days { display: none; }
 }
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  body { overflow-x: hidden; }
+  .nav { padding: 0 12px; }
+  .nav-right a.btn-outline { display: none; }
+  .notif-btn { display: none; }
+  .stats-grid { grid-template-columns: 1fr; }
   .quick-grid { grid-template-columns: repeat(2, 1fr); }
+  .greeting-banner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .greeting-right { width: 100%; display: flex; justify-content: flex-start; }
+  .greeting-right a { width: 100%; justify-content: center; }
 }
 </style>
 </head>
