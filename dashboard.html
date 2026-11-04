@@ -1307,7 +1307,17 @@ async function loadHistory(page = 1) {
     if (!res.ok || !data.ok) throw new Error(data.error || 'Failed');
 
     if (!data.questions.length && page === 1) {
-      list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No questions yet. <a href="echotwins_solver.html" style="color:var(--g600);font-weight:700">Start solving →</a></div>';
+      list.innerHTML = `
+        <div style="text-align:center;padding:50px 20px;border:1.5px dashed var(--border);border-radius:18px;margin:12px 0;">
+          <div style="font-size:40px;margin-bottom:10px">💡</div>
+          <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:4px">No questions solved yet</div>
+          <div style="font-size:13px;color:var(--muted);max-width:340px;margin:0 auto 16px;line-height:1.5">
+            Your solved questions, step-by-step approaches, and AI answers will be saved here automatically.
+          </div>
+          <a href="echotwins_solver.html" class="btn-primary" style="display:inline-flex;text-decoration:none;padding:10px 20px">
+            + Solve Your First Question →
+          </a>
+        </div>`;
       if (pgCtl) pgCtl.style.display = 'none';
       return;
     }

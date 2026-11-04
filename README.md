@@ -1,6 +1,6 @@
 # EchoTwins AI — Cognitive Learning Platform
 
-EchoTwins AI is an interactive educational question-solving platform with session-based authentication, multi-provider AI solving (Groq, Gemini, OpenRouter), and a scalable Supabase PostgreSQL backend.
+EchoTwins AI is an intelligent question-solving assistant that guides learners through complex academic problems with step-by-step cognitive reasoning. Rather than returning a single opaque output, it presents three distinct analytical approaches, derives the verified exact solution, and reads it aloud with voice synthesis. Built for learners seeking conceptual mastery across mathematics, science, engineering, and logic.
 
 ---
 
@@ -8,150 +8,127 @@ EchoTwins AI is an interactive educational question-solving platform with sessio
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Responsive Vanilla HTML5, CSS3, JavaScript (Light & Dark themes, Web Speech API) |
-| **Backend** | Python `http.server.ThreadingHTTPServer` + SQLAlchemy (pg8000 / PostgreSQL pooler) |
+| **Frontend** | Responsive Vanilla HTML5, CSS3, JavaScript (Light & Dark themes, Web Speech API, Mobile-ready 375px+) |
+| **Backend** | Python `ThreadingHTTPServer` + SQLAlchemy (`pg8000` driver, connection pooling) |
 | **AI Providers** | Groq (`openai/gpt-oss-120b`), Google Gemini (`gemini-2.0-flash`), OpenRouter via unified `openai` client |
-| **Sessions** | HMAC-SHA256 signed session tokens (HttpOnly cookies, SameSite=Lax) |
-| **Database** | Supabase PostgreSQL (transaction pooler port 6543) with SQLite fallback |
+| **Sessions** | Cryptographic HMAC-SHA256 session tokens stored in `HttpOnly; SameSite=Lax` cookies |
+| **Database** | Supabase PostgreSQL (transaction pooler port 6543) with verified SSL via `supabase-ca.crt` |
 
 ---
 
-## Getting Started
+## Local Development Setup
 
-### 1. Environment Configuration (`.env`)
+### 1. Prerequisites
+- Python 3.10+
+- Pip package manager
 
-Copy the example file:
-```bash
-copy .env.example .env
-```
-
-Open `.env` and configure your settings:
-```ini
-# Supabase PostgreSQL Transaction Pooler (port 6543)
-DATABASE_URL=postgresql://postgres.YOURREF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres
-
-# HMAC Session Signing Key
-SECRET_KEY=generate_a_random_secret_key_here
-
-# AI Provider Selection: groq, gemini, or openrouter
-PROVIDER=groq
-
-# Model Name
-MODEL=openai/gpt-oss-120b
-
-# Provider API Keys (Server-side only — never exposed to clients)
-GROQ_API_KEY=gsk_your_groq_key_here
-GEMINI_API_KEY=
-OPENROUTER_API_KEY=
-
-# Server Port
-PORT=3000
-```
-
-### 2. Switching Providers and Models
-
-You can switch the AI provider and model at any time by updating `.env`:
-
-* **Groq (Default, Free Tier):**
-  ```ini
-  PROVIDER=groq
-  MODEL=openai/gpt-oss-120b
-  GROQ_API_KEY=your_groq_api_key
-  ```
-  *(Alternative Groq models: `openai/gpt-oss-20b`, `qwen/qwen3.8-27b`)*
-
-* **Google Gemini:**
-  ```ini
-  PROVIDER=gemini
-  MODEL=gemini-2.0-flash
-  GEMINI_API_KEY=your_gemini_api_key
-  ```
-
-* **OpenRouter:**
-  ```ini
-  PROVIDER=openrouter
-  MODEL=meta-llama/llama-3.3-70b-instruct
-  OPENROUTER_API_KEY=your_openrouter_api_key
-  ```
-
-### 3. Install Dependencies
-
+### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-Packages included: `sqlalchemy`, `psycopg2-binary`, `pg8000`, `python-dotenv`, `werkzeug`, `openai`.
-
-### 4. Run the Migration (One-time)
-
-If you have legacy students in `students.json`, migrate them into the database:
+### 3. Environment Configuration (`.env`)
+Create `.env` by copying `.env.example`:
 ```bash
-python migrate_students.py
+copy .env.example .env
 ```
-*(Preserves `students.json` as a backup.)*
 
-### 5. Start the Server
+Configure `.env` with your credentials (all values remain private and are ignored by Git):
+```ini
+# Supabase PostgreSQL (transaction pooler port 6543)
+DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
 
+# Allow local SQLite fallback (set to true only for local testing without internet)
+ALLOW_SQLITE=false
+
+# Optional custom CA file (defaults to supabase-ca.crt in project root)
+SSL_CA_FILE=supabase-ca.crt
+
+# HMAC Session Signing Key (must be at least 32 characters)
+SECRET_KEY=change_this_to_at_least_32_random_characters_in_production
+
+# Admin API header secret
+ADMIN_SECRET=change_this_to_at_least_32_random_hex_characters_in_production
+
+# Cookie Security (set to true in production with HTTPS)
+COOKIE_SECURE=false
+
+# Port & Server Binding
+PORT=3000
+
+# AI Provider Configuration
+PROVIDER=groq
+MODEL=openai/gpt-oss-120b
+
+# AI Provider Keys
+GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=
+OPENROUTER_API_KEY=
+```
+
+### 4. Run the Server
 ```bash
 python server.py
 ```
-
-The server will start at **http://localhost:3000**.
-
----
-
-## API Endpoints
-
-| Method | Path | Authentication | Description |
-|---|---|---|---|
-| `POST` | `/api/register` | Public | Register new student, sets `session_token` cookie |
-| `POST` | `/api/login` | Public | Authenticate email/password, sets `session_token` cookie |
-| `POST` | `/api/logout` | Session | Clears session cookie |
-| `GET` | `/api/auth/me` | Session | Returns current authenticated student profile |
-| `POST` | `/api/solve` | **Session Required** | Solves question via AI, saves to DB, returns approaches & answer |
-| `GET` | `/api/history` | **Session Required** | Paginated questions for logged-in student (`?page=1&size=20`) |
-| `GET` | `/api/admin/students` | **Admin Session** | Paginated student list with question counts |
-| `GET` | `/api/admin/stats` | **Admin Session** | Aggregate metrics (students, new today, questions) |
-| `GET` | `/api/ai/status` | Public | Check active AI provider & configuration status |
-| `GET` | `/api/ping` | Public | Database health check |
+Open `http://localhost:3000` in your browser.
 
 ---
 
-## Security & Privacy Rules
+## Deploying on Render
 
-1. **Zero Client Secrets:** No API keys or database URLs are present in HTML, JavaScript, `config.js`, or client responses.
-2. **Session Verification:** `student_id` is never trusted from client request bodies or query parameters. The backend extracts `student_id` directly from the verified HMAC-signed session cookie.
-3. **Static File Whitelist:** Direct access to `.env`, `*.db`, `*.py`, `students.json`, `config.js`, `test_supabase.py`, and dotfiles returns `404 Not Found`.
-4. **Data Minimization:** Only the sanitized question string is sent to the AI provider. No personal student data (name, email, ID) is ever transmitted.
-5. **XSS Protection:** AI outputs are escaped with strict HTML encoding prior to rendering.
+To deploy EchoTwins AI on [Render](https://render.com) as a Web Service:
+
+1. **Create a New Web Service:**
+   - Link your GitHub repository (`https://github.com/Aman7644/meta.git`).
+   - **Environment:** `Python 3`
+   - **Region:** Choose a region close to your Supabase instance (e.g. Frankfurt / EU Central).
+   - **Build Command:**
+     ```bash
+     pip install -r requirements.txt
+     ```
+   - **Start Command:**
+     ```bash
+     python server.py
+     ```
+
+2. **Configure Environment Variables in Render Dashboard:**
+   Under **Environment Variables**, add the following keys:
+   - `DATABASE_URL`: Your Supabase pooler string (e.g. `postgresql://postgres.[ref]:[password]@aws-1-eu-central-1.pooler.supabase.com:6543/postgres`)
+   - `SECRET_KEY`: A random 32+ character string
+   - `ADMIN_SECRET`: A random 32+ character hex string
+   - `COOKIE_SECURE`: `true` (Render provides automatic HTTPS)
+   - `PROVIDER`: `groq`
+   - `MODEL`: `openai/gpt-oss-120b`
+   - `GROQ_API_KEY`: Your Groq API key
+   - `ALLOW_SQLITE`: `false`
+
+3. **SSL Certificate (`supabase-ca.crt`):**
+   - `supabase-ca.crt` is committed to the repository and tracked by Git.
+   - `db.py` automatically detects and loads `supabase-ca.crt` from its directory to verify the SSL connection to Supabase pooler.
+
+4. **Health Check Path:**
+   - Render Health Check Endpoint: `/health` (returns `{"ok": true}` without touching the database).
 
 ---
 
-## Deployment Guide (Render / Railway)
+## Managing Administrative Access
 
-GitHub Pages only hosts static files and cannot execute Python backends (`server.py`). To deploy EchoTwins AI for public use:
-
-### Deploying to Render:
-1. Create a **Web Service** on [Render.com](https://render.com).
-2. Connect your GitHub repository.
-3. Set the Environment to **Python 3**.
-4. Set the Build Command:
-   ```bash
-   pip install -r requirements.txt
+To promote an account to Admin:
+1. Register your student account via `http://localhost:3000/login.html` (or your Render live URL).
+2. Open your **Supabase Dashboard** &rarr; **SQL Editor**.
+3. Run the following parameterized query:
+   ```sql
+   UPDATE students
+   SET role = 'admin'
+   WHERE email = 'YOUR_EMAIL_HERE';
    ```
-5. Set the Start Command:
-   ```bash
-   python server.py
-   ```
-6. Add your Environment Variables in the Render dashboard:
-   * `DATABASE_URL` = your Supabase pooler URL
-   * `SECRET_KEY` = a long random string
-   * `PROVIDER` = `groq`
-   * `MODEL` = `openai/gpt-oss-120b`
-   * `GROQ_API_KEY` = your Groq API key
+4. Sign out and sign back in. The Admin Panel at `/admin.html` will automatically unlock with full student metrics and export options.
 
-### Deploying to Railway:
-1. Create a **New Project** on [Railway.app](https://railway.app).
-2. Select **Deploy from GitHub repo**.
-3. In Service Settings, configure the Environment Variables (`DATABASE_URL`, `SECRET_KEY`, `PROVIDER`, `MODEL`, `GROQ_API_KEY`).
-4. Railway will automatically detect `requirements.txt` and start `python server.py`.
+---
+
+## Security Architecture Highlights
+
+- **Zero Client-Side Credentials:** API keys, database URLs, and cryptographic secrets live exclusively in `.env` and `server.py`. No client file ever has access to credentials.
+- **Strict Static File Allowlist:** The static handler only serves public UI assets (`.html`, `.css`, `.js`, images, audio). Any request for `.env`, `server.py`, `db.py`, `students.json`, `.git`, or dotfiles returns `404 Not Found`.
+- **Database Connection Security:** Strict SSL certificate verification with hostname verification enabled using the root CA bundle (`supabase-ca.crt`).
+- **Rate Limiting:** Protects `/api/solve` with an in-memory sliding window limiter (10 requests per minute per user).

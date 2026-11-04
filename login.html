@@ -507,7 +507,6 @@ async function handleLogin(e) {
   btn.disabled = true;
   txt.innerHTML = '<div class="spinner"></div> Signing in…';
 
-  // ── Try local DB first ──
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
@@ -518,27 +517,17 @@ async function handleLogin(e) {
     if (res.ok && data.ok) {
       localStorage.setItem('et_user', JSON.stringify({ email: data.student.email, name: data.student.name, id: data.student.id }));
       showToast('✅ Welcome back, ' + data.student.name + '!');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
       return;
     } else {
-      showToast('❌ ' + (data.error || 'Login failed'));
-      btn.disabled = false;
-      txt.textContent = 'Sign In →';
-      return;
+      showToast('❌ ' + (data.error || 'Invalid email or password'));
     }
   } catch (netErr) {
-    // Server not running — fall back to demo
-    console.warn('DB server not reachable, using demo mode');
+    showToast('⚠️ Cannot connect to server. Please check your internet connection.');
+  } finally {
+    btn.disabled = false;
+    txt.textContent = 'Sign In →';
   }
-
-  // ── Demo fallback (server not running) ──
-  setTimeout(() => {
-    localStorage.setItem('et_user', JSON.stringify({ email, name: email.split('@')[0] }));
-    showToast('✅ Demo sign-in (no server running)');
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
-  }, 800);
-  btn.disabled = false;
-  txt.textContent = 'Sign In →';
 }
 
 // ── Signup ─────────────────────────────────────

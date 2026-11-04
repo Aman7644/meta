@@ -744,7 +744,10 @@ class Handler(SimpleHTTPRequestHandler):
         path = parsed.path
         params = parse_qs(parsed.query)
 
-        if path == "/api/ping":
+        if path == "/health":
+            self._json(200, {"ok": True})
+            return
+        elif path == "/api/ping":
             self._ping()
         elif path == "/api/ai/status":
             self._ai_status()
