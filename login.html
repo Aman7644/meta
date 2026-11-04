@@ -293,6 +293,50 @@ body {
   border-top-color: #fff;
   animation: spin .7s linear infinite;
 }
+
+/* ════ MODALS (Reset & Google/Social) ════ */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
+  display: none; align-items: center; justify-content: center;
+  z-index: 1000; padding: 18px;
+}
+.modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+.modal-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 420px;
+  padding: 32px 26px;
+  position: relative;
+  animation: modalScale .25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalScale {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size: 16px; color: var(--muted); cursor: pointer;
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.modal-close:hover { color: var(--ink); background: var(--border); }
+.modal-title { font-size: 20px; font-weight: 800; color: var(--ink); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.modal-sub { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+.modal-alert {
+  padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 500;
+  margin-bottom: 16px; display: none; line-height: 1.4;
+}
+.modal-alert.err { background: #FEF2F2; color: #DC2626; border: 1px solid #FCA5A5; display: block; }
+.modal-alert.ok  { background: #F0FDF4; color: #16A34A; border: 1px solid #86EFAC; display: block; }
+[data-theme="dark"] .modal-alert.err { background: #3B1212; color: #F87171; border-color: #7F1D1D; }
+[data-theme="dark"] .modal-alert.ok  { background: #0F2A18; color: #4ADE80; border-color: #166534; }
+
 </style>
 </head>
 <body>
@@ -434,6 +478,11 @@ body {
 
     <div class="login-footer" id="form-footer">
       Don't have an account? <a href="#" onclick="switchTab('signup');return false;">Sign up free</a>
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <a href="dashboard.html" style="font-size:13px;color:var(--g600);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+        📊 Open Dashboard Directly as Guest →
+      </a>
     </div>
 
   </div>
@@ -581,50 +630,227 @@ async function handleSignup(e) {
   txt.textContent = 'Create Account →';
 }
 
-// ── Social login (Google via Firebase or fallback) ─────────
-async function socialLogin(provider) {
-  if (provider === 'Google' && ECHOTWINS_CONFIG.FIREBASE_READY) {
-    showToast('🔗 Opening Google sign-in…');
-    try {
-      await window._firebaseInitPromise;
-      const result = await window._fbGoogleSignIn();
-      const user   = result.user;
-      localStorage.setItem('et_user', JSON.stringify({ email: user.email, name: user.displayName || user.email.split('@')[0], uid: user.uid, photo: user.photoURL }));
-      showToast('✅ Signed in with Google!');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
-    } catch (err) {
-      showToast('❌ Google sign-in failed: ' + err.message);
-    }
-  } else {
-    // Fallback (no Firebase key yet)
-    showToast(`🔗 Demo: Connecting to ${provider}…`);
-    setTimeout(() => {
-      localStorage.setItem('et_user', JSON.stringify({ email: `demo@${provider.toLowerCase()}.com`, name: `${provider} Demo User` }));
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
-    }, 1000);
-  }
+// ── Forgot password modal ───────────────────────
+function showForgot(e) {
+  if (e) e.preventDefault();
+  const loginEmail = document.getElementById('login-email').value.trim();
+  const resetEmail = document.getElementById('reset-email');
+  const alertBox   = document.getElementById('reset-alert');
+  alertBox.className = 'modal-alert';
+  alertBox.textContent = '';
+  if (loginEmail) resetEmail.value = loginEmail;
+  document.getElementById('reset-pass').value = '';
+  document.getElementById('reset-confirm').value = '';
+  document.getElementById('reset-modal').classList.add('open');
+  setTimeout(() => (loginEmail ? document.getElementById('reset-pass') : resetEmail).focus(), 150);
 }
 
-// ── Forgot password ────────────────────────────
-async function showForgot(e) {
+function closeResetModal() {
+  document.getElementById('reset-modal').classList.remove('open');
+}
+
+async function handleResetPassword(e) {
   e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  if (!email) { showToast('⚠️ Enter your email first'); return; }
-  if (ECHOTWINS_CONFIG.FIREBASE_READY) {
-    try {
-      await window._firebaseInitPromise;
-      await window._fbResetPass(email);
-      showToast('📧 Reset link sent to ' + email);
-    } catch (err) {
-      showToast('❌ ' + err.message);
+  const email   = document.getElementById('reset-email').value.trim();
+  const pass    = document.getElementById('reset-pass').value;
+  const confirm = document.getElementById('reset-confirm').value;
+  const alertBox = document.getElementById('reset-alert');
+  const btn     = document.getElementById('reset-btn');
+  const txt     = document.getElementById('reset-btn-text');
+
+  alertBox.className = 'modal-alert';
+  alertBox.textContent = '';
+
+  if (pass !== confirm) {
+    alertBox.className = 'modal-alert err';
+    alertBox.textContent = '❌ Passwords do not match.';
+    return;
+  }
+  if (pass.length < 6) {
+    alertBox.className = 'modal-alert err';
+    alertBox.textContent = '❌ Password must be at least 6 characters.';
+    return;
+  }
+
+  btn.disabled = true;
+  txt.innerHTML = '<div class="spinner"></div> Updating…';
+
+  try {
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, new_password: pass })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      alertBox.className = 'modal-alert ok';
+      alertBox.textContent = '✅ ' + (data.message || 'Password updated successfully!');
+      showToast('✅ Password reset! Please sign in.');
+      setTimeout(() => {
+        closeResetModal();
+        switchTab('login');
+        document.getElementById('login-email').value = email;
+        document.getElementById('login-pass').value = pass;
+        document.getElementById('login-pass').focus();
+      }, 1200);
+    } else {
+      alertBox.className = 'modal-alert err';
+      alertBox.textContent = '❌ ' + (data.error || 'Failed to reset password.');
     }
-  } else {
-    showToast('📧 (Demo) Reset link would be sent to ' + email);
+  } catch (err) {
+    alertBox.className = 'modal-alert err';
+    alertBox.textContent = '⚠️ Cannot connect to server. Check your connection.';
+  } finally {
+    btn.disabled = false;
+    txt.textContent = 'Update Password →';
   }
 }
 
+// ── Social Login Modal & API ───────────────────
+let currentSocialProvider = 'Google';
+
+function socialLogin(provider) {
+  currentSocialProvider = provider;
+  const modal = document.getElementById('social-modal');
+  const title = document.getElementById('social-modal-title');
+  const sub   = document.getElementById('social-modal-sub');
+  const lbl   = document.getElementById('social-email-label');
+  const btnTxt = document.getElementById('social-btn-text');
+  const alertBox = document.getElementById('social-alert');
+  const emailInput = document.getElementById('social-email');
+
+  alertBox.className = 'modal-alert';
+  alertBox.textContent = '';
+
+  title.innerHTML = provider === 'Google'
+    ? '<svg width="20" height="20" viewBox="0 0 18 18" style="vertical-align:middle;margin-right:6px"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> Continue with Google'
+    : '🐙 Continue with GitHub';
+  sub.textContent = `Sign in or create your student profile with your ${provider} account.`;
+  lbl.textContent = `${provider.toUpperCase()} EMAIL ADDRESS`;
+  btnTxt.textContent = `Continue with ${provider} →`;
+
+  const existingEmail = document.getElementById('login-email').value.trim();
+  if (existingEmail) emailInput.value = existingEmail;
+
+  modal.classList.add('open');
+  setTimeout(() => emailInput.focus(), 150);
+}
+
+function closeSocialModal() {
+  document.getElementById('social-modal').classList.remove('open');
+}
+
+async function handleSocialSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('social-email').value.trim();
+  const name  = document.getElementById('social-name').value.trim();
+  const alertBox = document.getElementById('social-alert');
+  const btn   = document.getElementById('social-btn');
+  const txt   = document.getElementById('social-btn-text');
+
+  alertBox.className = 'modal-alert';
+  alertBox.textContent = '';
+  btn.disabled = true;
+  txt.innerHTML = '<div class="spinner"></div> Authenticating…';
+
+  try {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, name: name, provider: currentSocialProvider })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      localStorage.setItem('et_user', JSON.stringify({
+        email: data.student.email,
+        name: data.student.name,
+        id: data.student.id,
+        role: data.student.role
+      }));
+      alertBox.className = 'modal-alert ok';
+      alertBox.textContent = '✅ Signed in as ' + data.student.name + '! Redirecting…';
+      showToast('✅ Welcome, ' + data.student.name + '!');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+    } else {
+      alertBox.className = 'modal-alert err';
+      alertBox.textContent = '❌ ' + (data.error || 'Authentication failed.');
+    }
+  } catch (err) {
+    alertBox.className = 'modal-alert err';
+    alertBox.textContent = '⚠️ Cannot connect to server. Check your connection.';
+  } finally {
+    btn.disabled = false;
+    txt.textContent = `Continue with ${currentSocialProvider} →`;
+  }
+}
 
 </script>
+
+<!-- ════ RESET PASSWORD MODAL ════ -->
+<div class="modal-overlay" id="reset-modal" onclick="if(event.target===this)closeResetModal()">
+  <div class="modal-card">
+    <button type="button" class="modal-close" onclick="closeResetModal()" title="Close">&times;</button>
+    <div class="modal-title">🔑 Reset Password</div>
+    <div class="modal-sub">Enter your registered email and choose a new password for your EchoTwins account.</div>
+    <div class="modal-alert" id="reset-alert"></div>
+    <form onsubmit="handleResetPassword(event)">
+      <div class="form-group">
+        <label class="form-label">REGISTERED EMAIL</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input type="email" class="form-input" id="reset-email" placeholder="you@example.com" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">NEW PASSWORD</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input type="password" class="form-input" id="reset-pass" placeholder="At least 6 characters" minlength="6" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">CONFIRM NEW PASSWORD</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔏</span>
+          <input type="password" class="form-input" id="reset-confirm" placeholder="Repeat new password" minlength="6" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" id="reset-btn" style="margin-top:12px">
+        <span id="reset-btn-text">Update Password →</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ════ GOOGLE / SOCIAL SIGN-IN MODAL ════ -->
+<div class="modal-overlay" id="social-modal" onclick="if(event.target===this)closeSocialModal()">
+  <div class="modal-card">
+    <button type="button" class="modal-close" onclick="closeSocialModal()" title="Close">&times;</button>
+    <div class="modal-title" id="social-modal-title">🌐 Continue with Google</div>
+    <div class="modal-sub" id="social-modal-sub">Sign in or create your student account with your Google email.</div>
+    <div class="modal-alert" id="social-alert"></div>
+    <form onsubmit="handleSocialSubmit(event)">
+      <div class="form-group">
+        <label class="form-label" id="social-email-label">GOOGLE ACCOUNT EMAIL</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input type="email" class="form-input" id="social-email" placeholder="name@gmail.com" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">FULL NAME (OPTIONAL)</label>
+        <div class="input-wrap">
+          <span class="input-icon">🧑</span>
+          <input type="text" class="form-input" id="social-name" placeholder="Your Name">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" id="social-btn" style="margin-top:12px">
+        <span id="social-btn-text">Continue with Google →</span>
+      </button>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>
 

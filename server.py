@@ -266,9 +266,16 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         raw_path = parsed.path.lstrip("/")
 
-        # Default root
-        if not raw_path:
-            raw_path = "index.html"
+        # Clean URL mapping & default root
+        clean_routes = {
+            "": "index.html",
+            "dashboard": "dashboard.html",
+            "solver": "echotwins_solver.html",
+            "login": "login.html",
+            "admin": "admin.html",
+        }
+        if raw_path in clean_routes:
+            raw_path = clean_routes[raw_path]
 
         # Normalize path
         normalized = os.path.normpath(raw_path).replace("\\", "/")
@@ -371,7 +378,7 @@ class Handler(SimpleHTTPRequestHandler):
             "role": s_role,
             "created_at": str(s_created)
         }
-        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if COOKIE_SECURE else ''}; Max-Age=604800"
+        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if (COOKIE_SECURE or self.headers.get('X-Forwarded-Proto', '').lower() == 'https') else ''}; Max-Age=604800"
         return self._json(201, {"ok": True, "student": student, "token": token}, [("Set-Cookie", cookie_val)])
 
     # ── POST /api/login ───────────────────────────────────────────────────────
@@ -407,13 +414,98 @@ class Handler(SimpleHTTPRequestHandler):
             "role": s_role,
             "created_at": str(s_created)
         }
-        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if COOKIE_SECURE else ''}; Max-Age=604800"
+        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if (COOKIE_SECURE or self.headers.get('X-Forwarded-Proto', '').lower() == 'https') else ''}; Max-Age=604800"
         return self._json(200, {"ok": True, "student": student, "token": token}, [("Set-Cookie", cookie_val)])
 
     # ── POST /api/logout ──────────────────────────────────────────────────────
     def _logout(self):
         cookie_val = "session_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
         return self._json(200, {"ok": True}, [("Set-Cookie", cookie_val)])
+
+    # ── POST /api/reset-password ──────────────────────────────────────────────
+    def _reset_password(self):
+        body = self._body()
+        email = (body.get("email", "") or "").strip().lower()
+        new_pwd = (body.get("new_password", "") or "")
+        if not email or not new_pwd:
+            return self._json(400, {"error": "Email and new password are required"})
+        if len(new_pwd) < 6:
+            return self._json(400, {"error": "Password must be at least 6 characters"})
+
+        with db.get_conn() as conn:
+            row = conn.execute(
+                text("SELECT id, name, email FROM students WHERE email = :email"),
+                {"email": email}
+            ).fetchone()
+            if not row:
+                return self._json(404, {"error": "No account found with this email address"})
+
+            pwd_hash = generate_password_hash(new_pwd)
+            conn.execute(
+                text("UPDATE students SET password_hash = :hash WHERE email = :email"),
+                {"hash": pwd_hash, "email": email}
+            )
+            conn.commit()
+
+        return self._json(200, {"ok": True, "message": "Password reset successfully. You can now sign in."})
+
+    # ── POST /api/auth/google ─────────────────────────────────────────────────
+    def _auth_google(self):
+        body = self._body()
+        email = (body.get("email", "") or "").strip().lower()
+        name = (body.get("name", "") or "").strip()
+        credential = body.get("credential", "")
+
+        # If real Google ID token passed, decode JWT payload
+        if credential:
+            try:
+                parts = credential.split(".")
+                if len(parts) >= 2:
+                    payload_b64 = parts[1]
+                    payload_b64 += "=" * (-len(payload_b64) % 4)
+                    claims = json.loads(base64.urlsafe_b64decode(payload_b64.encode("utf-8")).decode("utf-8"))
+                    email = (claims.get("email", "") or "").strip().lower()
+                    name = (claims.get("name", "") or claims.get("given_name", "") or "").strip()
+            except Exception:
+                pass
+
+        if not email or "@" not in email:
+            return self._json(400, {"error": "Valid email address is required for Google Sign-In"})
+        if not name:
+            name = email.split("@")[0].replace(".", " ").title()
+
+        with db.get_conn() as conn:
+            row = conn.execute(
+                text("SELECT id, name, email, role, created_at FROM students WHERE email = :email"),
+                {"email": email}
+            ).fetchone()
+
+            if not row:
+                # Auto-register new Google user
+                res = conn.execute(
+                    text("""
+                        INSERT INTO students (name, email, password_hash, role)
+                        VALUES (:name, :email, :pwd, 'student')
+                        RETURNING id, name, email, role, created_at
+                    """),
+                    {"name": name, "email": email, "pwd": generate_password_hash(os.urandom(16).hex())}
+                )
+                row = res.fetchone()
+                conn.commit()
+
+            student_id, s_name, s_email, s_role, s_created = row[0], row[1], row[2], row[3], row[4]
+
+        exp = int(time.time()) + (7 * 86400)
+        token = _sign_session({"sub": student_id, "email": s_email, "role": s_role, "exp": exp})
+        student = {
+            "id": student_id,
+            "name": s_name,
+            "email": s_email,
+            "role": s_role,
+            "created_at": str(s_created)
+        }
+        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if (COOKIE_SECURE or self.headers.get('X-Forwarded-Proto', '').lower() == 'https') else ''}; Max-Age=604800"
+        return self._json(200, {"ok": True, "student": student, "token": token}, [("Set-Cookie", cookie_val)])
 
     # ── GET /api/auth/me ──────────────────────────────────────────────────────
     def _auth_me(self):
@@ -731,6 +823,9 @@ class Handler(SimpleHTTPRequestHandler):
             "/api/register": self._register,
             "/api/login": self._login,
             "/api/logout": self._logout,
+            "/api/reset-password": self._reset_password,
+            "/api/auth/google": self._auth_google,
+            "/api/auth/social": self._auth_google,
             "/api/solve": self._solve,
         }
         handler = routes.get(path)
