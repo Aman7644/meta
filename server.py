@@ -383,6 +383,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     # ── POST /api/login ───────────────────────────────────────────────────────
     def _login(self):
+        client_ip = self.headers.get('X-Forwarded-For', '').split(',')[0].strip() or self.client_address[0]
+        if not _check_rate_limit(f'ip_{client_ip}'):
+            return self._json(429, {'error': 'Too many requests, try again in a minute'})
         body = self._body()
         email = (body.get("email", "") or "").strip().lower()
         pwd = (body.get("password", "") or "")
