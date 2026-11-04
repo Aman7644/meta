@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-EchoTwins AI — Backend Server (Supabase / PostgreSQL edition)
+LearnBuddy AI — Backend Server (Supabase / PostgreSQL edition)
 ==============================================================
 Serves static HTML/JS/CSS from the project directory AND provides a
 secure JSON REST API with session tokens, multi-provider AI solver (Groq/Gemini/OpenRouter),
@@ -168,7 +168,7 @@ ALLOWED_STATIC_FILES = {
     "app.html",
     "dashboard.html",
     "admin.html",
-    "echotwins_solver.html",
+    "learnbuddy_solver.html",
 }
 
 BLOCKED_PATTERNS = [
@@ -270,7 +270,7 @@ class Handler(SimpleHTTPRequestHandler):
         clean_routes = {
             "": "index.html",
             "dashboard": "dashboard.html",
-            "solver": "echotwins_solver.html",
+            "solver": "learnbuddy_solver.html",
             "login": "login.html",
             "admin": "admin.html",
         }
@@ -553,7 +553,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(503, {"error": f"AI key not configured for provider '{provider}'"})
 
         system_prompt = (
-            "You are EchoTwins AI, an expert educational question solver.\n"
+            "You are LearnBuddy AI, an expert educational question solver.\n"
             "Analyze the given question and output a valid raw JSON object with EXACTLY these keys:\n"
             "- approaches: an array of 3 distinct solving approaches (e.g. ['Approach 1 description', 'Approach 2 description', 'Approach 3 description'])\n"
             "- answer: the exact final answer in one clear, precise sentence or formula\n\n"
@@ -884,7 +884,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  EchoTwins AI — Supabase Edition (ThreadingHTTPServer)")
+    print("  LearnBuddy AI — Supabase Edition (ThreadingHTTPServer)")
     print(f"  http://localhost:{PORT}")
     print("=" * 60)
     print("  Initialising database …")

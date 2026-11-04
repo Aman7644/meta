@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EchoTwins AI — Login</title>
+<title>LearnBuddy AI — Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
 <!-- ══ STYLES ══ -->
 <style>
 /* ════════════════════════════════════════
-   THEME VARIABLES (matches echotwins_solver.html)
+   THEME VARIABLES (matches learnbuddy_solver.html)
 ════════════════════════════════════════ */
 :root {
   --g400:#4ADE80; --g500:#22C55E; --g600:#16A34A; --g700:#15803D; --g800:#166534;
@@ -351,13 +351,13 @@ body {
       </svg>
     </div>
     <div>
-      <div class="logo-text">EchoTwins <span>AI</span></div>
+      <div class="logo-text">LearnBuddy <span>AI</span></div>
       <div class="logo-sub">Your Cognitive Learning Partner</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
     <a href="index.html" style="font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--chip-bg)">🏠 Home</a>
-    <a href="echotwins_solver.html" style="font-size:13px;font-weight:600;color:var(--g700);text-decoration:none;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--chip-bg)">🤖 AI Solver</a>
+    <a href="learnbuddy_solver.html" style="font-size:13px;font-weight:600;color:var(--g700);text-decoration:none;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--chip-bg)">🤖 AI Solver</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
       <div class="theme-toggle-ball" id="theme-ball">☀️</div>
     </button>
@@ -513,7 +513,7 @@ function switchTab(tab) {
   document.querySelector('.login-title').textContent = isLogin ? 'Welcome back 👋' : 'Create your account ✨';
   document.querySelector('.login-sub').textContent   = isLogin
     ? 'Sign in to continue your learning journey with your AI twin.'
-    : 'Join thousands of learners using EchoTwins AI every day.';
+    : 'Join thousands of learners using LearnBuddy AI every day.';
 }
 
 // ── Password visibility ────────────────────────
@@ -791,7 +791,7 @@ async function handleSocialSubmit(e) {
   <div class="modal-card">
     <button type="button" class="modal-close" onclick="closeResetModal()" title="Close">&times;</button>
     <div class="modal-title">🔑 Reset Password</div>
-    <div class="modal-sub">Enter your registered email and choose a new password for your EchoTwins account.</div>
+    <div class="modal-sub">Enter your registered email and choose a new password for your LearnBuddy account.</div>
     <div class="modal-alert" id="reset-alert"></div>
     <form onsubmit="handleResetPassword(event)">
       <div class="form-group">

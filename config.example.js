@@ -1,7 +1,7 @@
-// EchoTwins AI — Client Configuration Example
+// LearnBuddy AI — Client Configuration Example
 // All AI requests are routed securely through the backend server /api/solve.
 // No API keys are stored in client-side code.
-const ECHOTWINS_CONFIG = {
-  APP_NAME: "EchoTwins AI",
+const LEARNBUDDY_CONFIG = {
+  APP_NAME: "LearnBuddy AI",
   VERSION: "2.0.0"
 };

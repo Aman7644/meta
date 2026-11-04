@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EchoTwins AI — Dashboard</title>
+<title>LearnBuddy AI — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- ══ CONFIG ══ -->
 
@@ -589,7 +589,7 @@ body {
       </svg>
     </div>
     <div onclick="window.location.href='index.html'" style="cursor:pointer">
-      <div class="logo-text">EchoTwins <span>AI</span></div>
+      <div class="logo-text">LearnBuddy <span>AI</span></div>
       <div class="logo-sub">Dashboard</div>
     </div>
   </div>
@@ -603,7 +603,7 @@ body {
 
   <div class="nav-right">
     <a href="index.html" class="btn-outline" style="padding:7px 14px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🏠 Home</a>
-    <a href="echotwins_solver.html" class="btn-primary" style="padding:8px 16px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🤖 AI Solver</a>
+    <a href="learnbuddy_solver.html" class="btn-primary" style="padding:8px 16px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🤖 AI Solver</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
       <div class="theme-toggle-ball" id="theme-ball">☀️</div>
     </button>
@@ -634,7 +634,7 @@ body {
     <div class="nav-item active" onclick="navigate('overview')" id="nav-overview">
       <span class="nav-item-icon">🏠</span> Overview
     </div>
-    <a href="echotwins_solver.html" class="nav-item" style="text-decoration:none;color:inherit" id="nav-solver">
+    <a href="learnbuddy_solver.html" class="nav-item" style="text-decoration:none;color:inherit" id="nav-solver">
       <span class="nav-item-icon">🤖</span> AI Solver
     </a>
     <div class="nav-item" onclick="navigate('history')" id="nav-history">
@@ -869,7 +869,7 @@ body {
       <div class="page-header">
         <div class="page-badge">📜 History</div>
         <h1 class="page-title">Question History</h1>
-        <p class="page-sub">All questions you've solved with your EchoTwins AI twin.</p>
+        <p class="page-sub">All questions you've solved with your LearnBuddy AI twin.</p>
       </div>
       <div class="card">
         <div class="q-list" id="history-list"><div style="text-align:center;padding:40px;color:var(--muted)">Loading…</div></div>
@@ -969,7 +969,7 @@ body {
       <div class="page-header">
         <div class="page-badge">🏆 Leaderboard</div>
         <h1 class="page-title">Top Learners</h1>
-        <p class="page-sub">See where you rank among all EchoTwins learners this week.</p>
+        <p class="page-sub">See where you rank among all LearnBuddy learners this week.</p>
       </div>
       <div class="card">
         <div class="card-title">🏆 Weekly Rankings <span class="badge-pill">This Week</span></div>
@@ -1102,7 +1102,7 @@ body {
       <div class="page-header">
         <div class="page-badge">⚙️ Settings</div>
         <h1 class="page-title">Settings</h1>
-        <p class="page-sub">Customize your EchoTwins experience.</p>
+        <p class="page-sub">Customize your LearnBuddy experience.</p>
       </div>
       <div style="max-width:600px">
         <div class="settings-group">
@@ -1196,15 +1196,15 @@ body {
       <div class="page-header">
         <div class="page-badge">🤖 AI Solver</div>
         <h1 class="page-title">Start a New AI Session</h1>
-        <p class="page-sub">Launch the full EchoTwins AI Question Solver.</p>
+        <p class="page-sub">Launch the full LearnBuddy AI Question Solver.</p>
       </div>
       <div class="card" style="text-align:center;padding:48px 32px">
         <div style="font-size:64px;margin-bottom:20px">🤖</div>
         <div style="font-size:20px;font-weight:800;color:var(--ink);margin-bottom:8px">Ready to solve your question?</div>
         <div style="font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.7;max-width:400px;margin-left:auto;margin-right:auto">
-          Your EchoTwins AI twin is waiting. Open the full solver to type, upload, or speak your question.
+          Your LearnBuddy AI twin is waiting. Open the full solver to type, upload, or speak your question.
         </div>
-        <a href="echotwins_solver.html" class="btn-primary" style="display:inline-flex;text-decoration:none">
+        <a href="learnbuddy_solver.html" class="btn-primary" style="display:inline-flex;text-decoration:none">
           🚀 Open AI Solver
         </a>
       </div>
@@ -1220,7 +1220,7 @@ body {
 // ── Init user from session ─────────────────────
 function initUser() {
   const raw = localStorage.getItem('et_user');
-  const user = raw ? JSON.parse(raw) : { name: 'Learner', email: 'learner@echotwins.ai' };
+  const user = raw ? JSON.parse(raw) : { name: 'Learner', email: 'learner@learnbuddy.ai' };
   const initial = (user.name || 'U')[0].toUpperCase();
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -1321,7 +1321,7 @@ async function loadHistory(page = 1) {
           <div style="font-size:13px;color:var(--muted);max-width:340px;margin:0 auto 16px;line-height:1.5">
             Your solved questions, step-by-step approaches, and AI answers will be saved here automatically.
           </div>
-          <a href="echotwins_solver.html" class="btn-primary" style="display:inline-flex;text-decoration:none;padding:10px 20px">
+          <a href="learnbuddy_solver.html" class="btn-primary" style="display:inline-flex;text-decoration:none;padding:10px 20px">
             + Solve Your First Question →
           </a>
         </div>`;
@@ -1381,7 +1381,7 @@ function buildHistory() { loadHistory(1); }
 // ── Quick Solve Navigation ─────────────────────
 function quickSolve(val) {
   if (!val || !val.trim()) return;
-  window.location.href = `echotwins_solver.html?q=${encodeURIComponent(val.trim())}`;
+  window.location.href = `learnbuddy_solver.html?q=${encodeURIComponent(val.trim())}`;
 }
 
 // ── Search ─────────────────────────────────────

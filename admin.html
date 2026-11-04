@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EchoTwins AI — Admin Panel</title>
+<title>LearnBuddy AI — Admin Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -210,13 +210,13 @@ body {
   <div class="nav-logo" onclick="window.location.href='index.html'" style="cursor:pointer">
     <div class="logo-icon">🛡️</div>
     <div>
-      <div class="logo-text">EchoTwins <span>Admin</span></div>
+      <div class="logo-text">LearnBuddy <span>Admin</span></div>
       <div class="logo-sub">Student Database Panel</div>
     </div>
   </div>
   <div class="nav-right" id="nav-right" style="display:none">
     <a href="index.html"     class="btn btn-outline">🏠 Home</a>
-    <a href="echotwins_solver.html" class="btn btn-outline">🤖 AI Solver</a>
+    <a href="learnbuddy_solver.html" class="btn btn-outline">🤖 AI Solver</a>
     <a href="dashboard.html" class="btn btn-outline">📊 Dashboard</a>
     <a href="login.html"     class="btn btn-outline">🔑 Login Page</a>
     <button class="btn btn-green" onclick="loadStudents()">🔄 Refresh</button>
@@ -239,7 +239,7 @@ body {
       🔓 Unlock Panel
     </button>
     <div class="lock-error" id="lock-error"></div>
-    <div style="margin-top:16px;font-size:12px;color:var(--muted)">Default password: <strong>echotwins</strong></div>
+    <div style="margin-top:16px;font-size:12px;color:var(--muted)">Default password: <strong>learnbuddy</strong></div>
   </div>
 </div>
 
@@ -535,7 +535,7 @@ function exportCSV() {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `echotwins_students_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `learnbuddy_students_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('✅ CSV downloaded!');

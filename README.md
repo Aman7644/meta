@@ -1,6 +1,6 @@
-# EchoTwins AI — Cognitive Learning Platform
+# LearnBuddy AI — Cognitive Learning Platform
 
-EchoTwins AI is an intelligent question-solving assistant that guides learners through complex academic problems with step-by-step cognitive reasoning. Rather than returning a single opaque output, it presents three distinct analytical approaches, derives the verified exact solution, and reads it aloud with voice synthesis. Built for learners seeking conceptual mastery across mathematics, science, engineering, and logic.
+LearnBuddy AI is an intelligent question-solving assistant that guides learners through complex academic problems with step-by-step cognitive reasoning. Rather than returning a single opaque output, it presents three distinct analytical approaches, derives the verified exact solution, and reads it aloud with voice synthesis. Built for learners seeking conceptual mastery across mathematics, science, engineering, and logic.
 
 ---
 
@@ -76,7 +76,7 @@ Open `http://localhost:3000` in your browser.
 
 ## Deploying on Render
 
-To deploy EchoTwins AI on [Render](https://render.com) as a Web Service:
+To deploy LearnBuddy AI on [Render](https://render.com) as a Web Service:
 
 1. **Create a New Web Service:**
    - Link your GitHub repository (`https://github.com/Aman7644/meta.git`).

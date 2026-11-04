@@ -1,5 +1,5 @@
 """
-db.py — EchoTwins AI database connection layer (Supabase PostgreSQL / SQLite)
+db.py — LearnBuddy AI database connection layer (Supabase PostgreSQL / SQLite)
 
 Fails loudly if DATABASE_URL fails to connect unless ALLOW_SQLITE=true is set in .env.
 Supports Supabase PostgreSQL via connection pooling (port 6543) with verified SSL.
@@ -31,8 +31,8 @@ is_placeholder = (
 def _build_engine():
     if is_placeholder:
         if allow_sqlite:
-            print("  [db] Using local SQLite (echotwins.db) because ALLOW_SQLITE=true.")
-            return create_engine("sqlite:///echotwins.db")
+            print("  [db] Using local SQLite (learnbuddy.db) because ALLOW_SQLITE=true.")
+            return create_engine("sqlite:///learnbuddy.db")
         else:
             sys.stderr.write("\n[FATAL DATABASE ERROR] DATABASE_URL contains placeholder values (e.g. [YOUR-PASSWORD]), and ALLOW_SQLITE is not set to true.\n")
             sys.stderr.write("To use PostgreSQL, replace [YOUR-PASSWORD] with your actual Supabase database password in .env.\n\n")
@@ -94,7 +94,7 @@ def _build_engine():
     except Exception as err:
         if allow_sqlite:
             print(f"  [db] WARNING: Failed to connect to remote database: {err}. Falling back to SQLite because ALLOW_SQLITE=true.")
-            return create_engine("sqlite:///echotwins.db")
+            return create_engine("sqlite:///learnbuddy.db")
         else:
             err_type = type(err).__name__
             sys.stderr.write(f"\n[FATAL DATABASE ERROR] Failed to connect to database at DATABASE_URL ({err_type}): {err}\n\n")
