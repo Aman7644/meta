@@ -38,9 +38,14 @@ load_dotenv()
 
 import db  # noqa: E402
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "echotwins_default_secret_key_change_me_12345")
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    sys.stderr.write("\n[FATAL CONFIG ERROR] SECRET_KEY is missing or shorter than 32 characters in .env.\n")
+    sys.stderr.write("Please configure a strong, random SECRET_KEY (at least 32 characters) to sign session tokens.\n\n")
+    sys.exit(1)
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "")
 PORT = int(os.environ.get("PORT", 3000))
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").strip().lower() in ("true", "1", "yes")
 PAGE_DEFAULT = 20
 PAGE_MAX = 100
 QUESTION_MAX_LEN = 2000
@@ -366,7 +371,7 @@ class Handler(SimpleHTTPRequestHandler):
             "role": s_role,
             "created_at": str(s_created)
         }
-        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800"
+        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if COOKIE_SECURE else ''}; Max-Age=604800"
         return self._json(201, {"ok": True, "student": student, "token": token}, [("Set-Cookie", cookie_val)])
 
     # ── POST /api/login ───────────────────────────────────────────────────────
@@ -402,7 +407,7 @@ class Handler(SimpleHTTPRequestHandler):
             "role": s_role,
             "created_at": str(s_created)
         }
-        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800"
+        cookie_val = f"session_token={token}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if COOKIE_SECURE else ''}; Max-Age=604800"
         return self._json(200, {"ok": True, "student": student, "token": token}, [("Set-Cookie", cookie_val)])
 
     # ── POST /api/logout ──────────────────────────────────────────────────────
@@ -781,7 +786,7 @@ if __name__ == "__main__":
     print(f"  Secret Key:     {'CONFIGURED' if SECRET_KEY else 'DEFAULT [WARN]'}")
     print(f"  Admin Secret:   {'CONFIGURED' if ADMIN_SECRET else 'NOT SET [WARN]'}")
     print("=" * 60)
-    httpd = ThreadingHTTPServer(("", PORT), Handler)
+    httpd = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
