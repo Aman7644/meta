@@ -761,7 +761,7 @@ body {
         <div class="card">
           <div class="card-title">📌 Recent Questions <span class="badge-pill">Last 5</span></div>
           <div class="q-list">
-            <div class="q-item" onclick="navigate('solver')">
+            <div class="q-item" onclick="quickSolve('A train travels 120 km at 60 km/h and returns at 40 km/h. What is the average speed?')">
               <div class="q-item-icon">🔢</div>
               <div class="q-item-body">
                 <div class="q-item-text">Average speed: train going 60 km/h returning 40 km/h</div>
@@ -771,7 +771,7 @@ body {
                 </div>
               </div>
             </div>
-            <div class="q-item" onclick="navigate('solver')">
+            <div class="q-item" onclick="quickSolve('What is the difference between AC and DC current?')">
               <div class="q-item-icon">⚡</div>
               <div class="q-item-body">
                 <div class="q-item-text">What is the difference between AC and DC current?</div>
@@ -781,7 +781,7 @@ body {
                 </div>
               </div>
             </div>
-            <div class="q-item" onclick="navigate('solver')">
+            <div class="q-item" onclick="quickSolve('Explain photosynthesis and the light-dependent reactions')">
               <div class="q-item-icon">🌿</div>
               <div class="q-item-body">
                 <div class="q-item-text">Explain photosynthesis and the light-dependent reactions</div>
@@ -791,7 +791,7 @@ body {
                 </div>
               </div>
             </div>
-            <div class="q-item" onclick="navigate('solver')">
+            <div class="q-item" onclick="quickSolve('What were the main causes of World War I?')">
               <div class="q-item-icon">📖</div>
               <div class="q-item-body">
                 <div class="q-item-text">What were the main causes of World War I?</div>
@@ -801,7 +801,7 @@ body {
                 </div>
               </div>
             </div>
-            <div class="q-item" onclick="navigate('solver')">
+            <div class="q-item" onclick="quickSolve('Solve the classic river crossing puzzle: farmer, fox, chicken, and grain.')">
               <div class="q-item-icon">🤔</div>
               <div class="q-item-body">
                 <div class="q-item-text">River crossing puzzle: farmer, fox, chicken, grain</div>
@@ -934,31 +934,31 @@ body {
         <p class="page-sub">Pick a subject and start a targeted AI session.</p>
       </div>
       <div class="quick-grid" style="grid-template-columns:repeat(3,1fr);gap:16px">
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Maths session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Mathematics'">
           <div class="quick-icon">🔢</div><div class="quick-label">Mathematics</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Physics session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Physics'">
           <div class="quick-icon">⚡</div><div class="quick-label">Physics</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Chemistry session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Chemistry'">
           <div class="quick-icon">⚗️</div><div class="quick-label">Chemistry</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Biology session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Biology'">
           <div class="quick-icon">🌿</div><div class="quick-label">Biology</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting History session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=History'">
           <div class="quick-icon">📖</div><div class="quick-label">History</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Geography session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Geography'">
           <div class="quick-icon">🌍</div><div class="quick-label">Geography</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Economics session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Economics'">
           <div class="quick-icon">💼</div><div class="quick-label">Economics</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Logic session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Logic'">
           <div class="quick-icon">🤔</div><div class="quick-label">Logic & Puzzles</div>
         </div>
-        <div class="quick-card" onclick="navigate('solver');showToast('Starting Engineering session…')">
+        <div class="quick-card" onclick="window.location.href='learnbuddy_solver.html?subject=Engineering'">
           <div class="quick-icon">📐</div><div class="quick-label">Engineering</div>
         </div>
       </div>
@@ -1248,13 +1248,19 @@ function initUser() {
 // ── Navigation ─────────────────────────────────
 const SECTIONS = ['overview','history','progress','subjects','leaderboard','achievements','profile','settings','solver'];
 function navigate(id) {
+  if (id === 'solver') {
+    window.location.href = 'learnbuddy_solver.html';
+    return;
+  }
   SECTIONS.forEach(s => {
-    document.getElementById('section-'+s).classList.toggle('active', s===id);
+    const sec = document.getElementById('section-'+s);
+    if (sec) sec.classList.toggle('active', s===id);
     const ni = document.getElementById('nav-'+s);
     if (ni) ni.classList.toggle('active', s===id);
   });
-  // Close mobile sidebar
-  document.getElementById('sidebar').classList.remove('open');
+  const sb = document.getElementById('sidebar');
+  if (sb) sb.classList.remove('open');
+  try { history.replaceState(null, '', '#' + id); } catch(e) {}
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1413,8 +1419,15 @@ function logout() {
 
 // ── Boot ───────────────────────────────────────
 initUser();
-
 loadHistory(1);
+const initialHash = window.location.hash.replace('#', '');
+if (SECTIONS.includes(initialHash)) {
+  navigate(initialHash);
+}
+window.addEventListener('hashchange', () => {
+  const h = window.location.hash.replace('#', '');
+  if (SECTIONS.includes(h)) navigate(h);
+});
 </script>
 </body>
 </html>

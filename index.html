@@ -1389,21 +1389,34 @@ function showToast(msg) {
 const VIEWS = ['landing', 'auth', 'solver', 'dashboard', 'admin'];
 
 function showView(viewId, params = {}) {
+  if (viewId === 'auth' || viewId === 'login') {
+    window.location.href = 'login.html';
+    return;
+  }
+  if (viewId === 'dashboard') {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  if (viewId === 'solver') {
+    let url = 'learnbuddy_solver.html';
+    if (params.q) url += '?q=' + encodeURIComponent(params.q);
+    else if (params.subject) url += '?subject=' + encodeURIComponent(params.subject);
+    window.location.href = url;
+    return;
+  }
+  if (viewId === 'admin') {
+    window.location.href = 'admin.html';
+    return;
+  }
+  // Landing view
   VIEWS.forEach(v => {
     const el = document.getElementById('view-' + v);
-    if (el) el.classList.toggle('active', v === viewId);
+    if (el) el.classList.toggle('active', v === 'landing');
     const navBtn = document.getElementById('btn-nav-' + v);
-    if (navBtn) navBtn.classList.toggle('active', v === viewId);
+    if (navBtn) navBtn.classList.toggle('active', v === 'landing');
   });
-  currentView = viewId;
-  window.location.hash = viewId;
+  currentView = 'landing';
   window.scrollTo({ top: 0, behavior: 'smooth' });
-
-  if (viewId === 'dashboard') initDashboard();
-  if (viewId === 'admin') initAdminView();
-  if (viewId === 'solver' && params.q) {
-    document.getElementById('solver-q').value = params.q;
-  }
 }
 
 // URL Hash routing support
@@ -1423,15 +1436,17 @@ function updateAuthUI() {
       const u = JSON.parse(userJson);
       const init = (u.name || 'U')[0].toUpperCase();
       container.innerHTML = `
-        <div class="user-pill" onclick="logout()" title="Click to Sign Out">
-          <div class="user-avatar-sm">${init}</div>
-          <span>${u.name || 'Student'}</span>
-          <span style="font-size:11px;color:var(--muted)">🚪</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <a href="dashboard.html" class="user-pill" style="text-decoration:none;color:inherit" title="Open Dashboard">
+            <div class="user-avatar-sm">${init}</div>
+            <span>${u.name || 'Student'}</span>
+          </a>
+          <button onclick="logout()" class="btn-outline" style="padding:6px 10px;font-size:11px;border-radius:8px" title="Sign Out">🚪</button>
         </div>`;
       return;
     } catch(e) {}
   }
-  container.innerHTML = `<button class="btn-primary" style="padding:7px 14px;font-size:12.5px" onclick="showView('auth')">Sign In</button>`;
+  container.innerHTML = `<a href="login.html" class="btn-primary" style="padding:7px 14px;font-size:12.5px;text-decoration:none;display:inline-flex;align-items:center">Sign In</a>`;
 }
 
 function switchAuthTab(mode) {
@@ -1996,8 +2011,14 @@ window.addEventListener('DOMContentLoaded', () => {
   spawnParticles();
   updateAuthUI();
   const hash = window.location.hash.replace('#', '');
-  if (VIEWS.includes(hash)) {
-    showView(hash);
+  if (hash === 'dashboard') {
+    window.location.href = 'dashboard.html';
+  } else if (hash === 'solver') {
+    window.location.href = 'learnbuddy_solver.html';
+  } else if (hash === 'auth' || hash === 'login') {
+    window.location.href = 'login.html';
+  } else if (hash === 'admin') {
+    window.location.href = 'admin.html';
   } else {
     showView('landing');
   }
