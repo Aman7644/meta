@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EchoTwins AI — Question Solver</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════
+   THEME VARIABLES
+════════════════════════════════════════ */
+:root {
+  --g400:#4ADE80; --g500:#22C55E; --g600:#16A34A; --g700:#15803D; --g800:#166534;
+  --g100:#DCFCE7; --g200:#BBF7D0; --g50:#F0FDF4;
+}
+
+/* LIGHT THEME */
+[data-theme="light"] {
+  --bg:         #F0FDF4;
+  --surface:    #ffffff;
+  --surface2:   #F0FDF4;
+  --border:     #C6E8CC;
+  --ink:        #0F2517;
+  --ink2:       #1E4D2B;
+  --muted:      #4B7A59;
+  --nav-bg:     #ffffff;
+  --nav-border: #DCF5E4;
+  --card-bg:    #ffffff;
+  --input-bg:   #ffffff;
+  --input-border:#C6E8CC;
+  --chip-bg:    #F0FDF4;
+  --shadow:     0 2px 24px rgba(22,163,74,.10);
+  --shadow-lg:  0 8px 40px rgba(22,163,74,.15);
+  --wave-bg:    #F0FDF4;
+  --code-bg:    #0F1F14;
+}
+
+/* DARK THEME */
+[data-theme="dark"] {
+  --bg:         #0A1A0D;
+  --surface:    #111F14;
+  --surface2:   #162B1B;
+  --border:     #1E4028;
+  --ink:        #E8F5EC;
+  --ink2:       #B6DFC0;
+  --muted:      #7DB892;
+  --nav-bg:     #0D1F10;
+  --nav-border: #193324;
+  --card-bg:    #111F14;
+  --input-bg:   #0F1C12;
+  --input-border:#1E4028;
+  --chip-bg:    #162B1B;
+  --shadow:     0 2px 24px rgba(0,0,0,.40);
+  --shadow-lg:  0 8px 40px rgba(0,0,0,.50);
+  --wave-bg:    #0D1F10;
+  --code-bg:    #060E08;
+}
+
+/* ════════════════════════════════════════
+   BASE
+════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background .3s, color .3s;
+}
+
+/* ════════════════════════════════════════
+   TOP NAV
+════════════════════════════════════════ */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--nav-bg);
+  border-bottom: 2px solid var(--nav-border);
+  box-shadow: var(--shadow);
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  transition: background .3s, border-color .3s;
+}
+.nav-logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.logo-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--g700), var(--g500));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(22,163,74,.35);
+}
+.logo-text { font-size: 20px; font-weight: 800; letter-spacing: -.4px; color: var(--ink); line-height: 1; }
+.logo-text span { color: var(--g600); }
+.logo-sub { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: .04em; margin-top: 2px; }
+
+/* Step dots */
+.step-trail { display: flex; align-items: center; gap: 0; }
+.trail-dot-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.trail-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid #D1D5DB; background: var(--surface);
+  transition: all .3s;
+}
+.trail-dot.active { background: var(--g600); border-color: var(--g600); }
+.trail-dot.done   { background: var(--g200); border-color: var(--g500); }
+.trail-label { font-size: 10px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.trail-label.active { color: var(--g600); }
+.trail-line { width: 44px; height: 2px; background: var(--border); transition: background .3s; }
+.trail-line.done { background: var(--g400); }
+
+/* Theme toggle */
+.theme-toggle {
+  width: 44px; height: 24px; border-radius: 12px;
+  background: var(--border); border: none; cursor: pointer;
+  position: relative; transition: background .3s;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .theme-toggle { background: var(--g600); }
+.theme-toggle-ball {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; position: absolute; top: 3px; left: 3px;
+  transition: transform .3s;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+}
+[data-theme="dark"] .theme-toggle-ball { transform: translateX(20px); }
+
+.nav-right { display: flex; align-items: center; gap: 12px; }
+
+/* ════════════════════════════════════════
+   PAGE LAYOUT
+════════════════════════════════════════ */
+.page { display: none; animation: fadeUp .4s ease both; }
+.page.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.container { max-width: 860px; margin: 0 auto; padding: 36px 20px 120px; }
+
+/* ════════════════════════════════════════
+   CARDS
+════════════════════════════════════════ */
+.card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 32px;
+  transition: background .3s, border-color .3s;
+}
+.card-green { border-color: var(--g500); box-shadow: 0 0 0 4px rgba(34,197,94,.10), var(--shadow); }
+.card + .card { margin-top: 20px; }
+
+/* ════════════════════════════════════════
+   BUTTONS
+════════════════════════════════════════ */
+.btn-primary {
+  background: linear-gradient(135deg, var(--g700), var(--g500));
+  color: #fff; font-weight: 700; padding: 13px 28px;
+  border-radius: 14px; border: none; cursor: pointer;
+  font-size: 14px; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: 0 4px 14px rgba(22,163,74,.35);
+  transition: opacity .15s, transform .1s;
+}
+.btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+.btn-outline {
+  background: var(--surface);
+  color: var(--g700); font-weight: 600; padding: 12px 20px;
+  border-radius: 14px; border: 1.8px solid var(--border);
+  cursor: pointer; font-size: 14px; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all .15s;
+}
+.btn-outline:hover { background: var(--g50); border-color: var(--g500); }
+
+.btn-ghost {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 13px; font-family: inherit;
+  padding: 6px 10px; border-radius: 8px;
+  transition: color .15s, background .15s;
+}
+.btn-ghost:hover { color: var(--g700); background: var(--chip-bg); }
+
+/* ════════════════════════════════════════
+   INPUTS
+════════════════════════════════════════ */
+textarea, input[type=text] {
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  background: var(--input-bg);
+  border: 1.8px solid var(--input-border);
+  border-radius: 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color .2s, background .3s;
+}
+textarea:focus, input[type=text]:focus { border-color: var(--g500); }
+textarea { resize: vertical; padding: 16px; font-size: 14px; line-height: 1.7; }
+input[type=text] { padding: 13px 16px; font-size: 14px; }
+
+/* ════════════════════════════════════════
+   PAGE HEADERS
+════════════════════════════════════════ */
+.page-header { margin-bottom: 28px; }
+.page-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--chip-bg); border: 1.5px solid var(--g200);
+  border-radius: 99px; padding: 5px 14px;
+  font-size: 12px; font-weight: 700; color: var(--g700);
+  margin-bottom: 10px;
+}
+.page-title { font-size: 26px; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* ════════════════════════════════════════
+   PAGE 1 — QUESTION INPUT
+════════════════════════════════════════ */
+.q-input-wrap {
+  border: 1.8px solid var(--input-border);
+  border-radius: 16px; overflow: hidden; margin-bottom: 20px;
+  transition: border-color .2s;
+}
+.q-input-wrap:focus-within { border-color: var(--g500); }
+.q-input-toolbar {
+  background: var(--surface2);
+  border-bottom: 1.5px solid var(--border);
+  padding: 10px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.q-input-label { font-size: 11px; font-weight: 700; color: var(--g700); text-transform: uppercase; letter-spacing: .06em; }
+#q-textarea {
+  border: none; border-radius: 0; min-height: 180px;
+  background: var(--input-bg);
+}
+#q-textarea:focus { border: none; }
+
+.upload-strip {
+  background: var(--surface2); border: 2px dashed var(--border);
+  border-radius: 14px; padding: 20px;
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.upload-strip:hover { border-color: var(--g500); background: var(--chip-bg); }
+.upload-icon { font-size: 26px; }
+.upload-text { font-size: 13px; color: var(--muted); }
+.upload-text strong { color: var(--ink); display: block; font-size: 14px; }
+
+.subject-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.chip {
+  padding: 7px 16px; border-radius: 99px;
+  border: 1.8px solid var(--border); background: var(--chip-bg);
+  font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+  transition: all .15s;
+}
+.chip:hover, .chip.active { background: var(--g600); color: #fff; border-color: var(--g600); }
+
+.q-options { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+
+/* ════════════════════════════════════════
+   PAGE 2 — AI FACE + COMMUNICATION
+════════════════════════════════════════ */
+.ai-stage {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0; margin-bottom: 28px;
+}
+
+.ai-avatar-ring {
+  width: 200px; height: 200px; border-radius: 50%;
+  border: 4px solid var(--g500);
+  box-shadow: 0 0 0 8px rgba(34,197,94,.15), 0 0 0 16px rgba(34,197,94,.07);
+  overflow: hidden; position: relative;
+  background: linear-gradient(135deg, #0A2F14, #164D24);
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-face-svg { width: 130px; height: 130px; }
+
+.ai-pulse {
+  position: absolute; inset: -8px; border-radius: 50%;
+  border: 2px solid rgba(34,197,94,.4);
+  animation: pulse-ring 2s ease-out infinite;
+}
+.ai-pulse:nth-child(2) { animation-delay: .6s; }
+.ai-pulse:nth-child(3) { animation-delay: 1.2s; }
+@keyframes pulse-ring {
+  0% { transform: scale(.88); opacity: 1; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+
+.ai-name { font-size: 18px; font-weight: 800; color: var(--ink); margin: 18px 0 4px; }
+.ai-status {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--g700); font-weight: 600;
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--g500);
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+@keyframes wave { 0%,100% { height: 4px; } 50% { height: 24px; } }
+.waveform { display: flex; align-items: center; gap: 3px; height: 32px; }
+.wv { width: 4px; border-radius: 3px; background: var(--g500); animation: wave 1s ease-in-out infinite; }
+.wv:nth-child(1){animation-delay:0s}
+.wv:nth-child(2){animation-delay:.1s}
+.wv:nth-child(3){animation-delay:.2s}
+.wv:nth-child(4){animation-delay:.3s}
+.wv:nth-child(5){animation-delay:.4s}
+.wv:nth-child(6){animation-delay:.3s}
+.wv:nth-child(7){animation-delay:.2s}
+.wv:nth-child(8){animation-delay:.1s}
+.waveform.paused .wv { animation-play-state: paused; height: 4px; }
+
+.ai-bubble {
+  background: var(--chip-bg);
+  border: 1.8px solid var(--g200);
+  border-radius: 20px 20px 20px 4px;
+  padding: 18px 22px; font-size: 14px;
+  color: var(--ink); line-height: 1.75;
+  max-width: 580px; margin: 20px auto 0;
+}
+
+.comm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.comm-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border); border-radius: 16px;
+  padding: 20px; display: flex; flex-direction: column;
+  align-items: center; gap: 10px; cursor: pointer;
+  transition: all .2s;
+}
+.comm-card:hover { border-color: var(--g500); box-shadow: 0 0 0 3px rgba(34,197,94,.12); }
+.comm-card.active { border-color: var(--g500); background: var(--chip-bg); box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
+.comm-icon { font-size: 32px; }
+.comm-label { font-size: 14px; font-weight: 700; color: var(--ink); }
+.comm-sub { font-size: 12px; color: var(--muted); text-align: center; }
+
+.reply-area {
+  background: var(--card-bg); border: 1.5px solid var(--border);
+  border-radius: 16px; padding: 16px; margin-bottom: 16px;
+}
+.reply-area label { font-size: 12px; font-weight: 700; color: var(--g700); display: block; margin-bottom: 8px; }
+.reply-row { display: flex; gap: 10px; }
+.reply-row input { flex: 1; }
+
+.video-preview {
+  background: #0A1A0D; border: 2px solid var(--g700);
+  border-radius: 16px; height: 160px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; margin-bottom: 16px;
+}
+.video-preview span { font-size: 13px; color: var(--g400); }
+.cam-badge {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(239,68,68,.85); color: #fff;
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 99px; display: flex; align-items: center; gap: 5px;
+}
+
+/* ════════════════════════════════════════
+   PAGE 3 — APPROACHES
+════════════════════════════════════════ */
+.approach-card {
+  background: var(--card-bg); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 22px 24px;
+  margin-bottom: 16px; transition: all .2s;
+  cursor: pointer;
+}
+.approach-card:hover { border-color: var(--g500); box-shadow: var(--shadow); }
+.approach-card.selected { border-color: var(--g500); background: var(--chip-bg); box-shadow: 0 0 0 4px rgba(34,197,94,.12); }
+.approach-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--g600); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px; flex-shrink: 0;
+}
+.approach-header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.approach-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.approach-body { font-size: 13px; color: var(--ink2); line-height: 1.7; padding-left: 46px; }
+
+/* Error banner */
+.error-banner {
+  background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B;
+  border-radius: 16px; padding: 20px; margin-bottom: 24px;
+  display: none; align-items: center; justify-content: space-between; gap: 14px;
+}
+[data-theme="dark"] .error-banner {
+  background: #2D1515; border-color: #7F1D1D; color: #FCA5A5;
+}
+
+/* Loading state */
+.loading-box {
+  background: var(--card-bg); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 40px 24px; text-align: center;
+  margin-bottom: 24px; display: none;
+}
+.spinner {
+  width: 40px; height: 40px; border: 3px solid var(--border);
+  border-top-color: var(--g500); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════
+   PAGE 4 — EXACT ANSWER
+════════════════════════════════════════ */
+.answer-hero {
+  background: linear-gradient(135deg, var(--g800), var(--g600));
+  border-radius: 20px; padding: 32px;
+  color: #fff; margin-bottom: 24px;
+  position: relative; overflow: hidden;
+}
+.answer-hero-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .75; margin-bottom: 8px; }
+.answer-hero-text { font-size: 22px; font-weight: 800; line-height: 1.5; }
+.answer-hero-sub { font-size: 13px; opacity: .85; margin-top: 10px; line-height: 1.6; }
+
+.action-bar {
+  display: flex; gap: 10px; justify-content: space-between;
+  flex-wrap: wrap; align-items: center;
+  padding-top: 20px; border-top: 1.5px solid var(--border);
+  margin-top: 24px;
+}
+
+/* ════════════════════════════════════════
+   BOTTOM FIXED BAR
+════════════════════════════════════════ */
+.bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--nav-bg); border-top: 2px solid var(--nav-border);
+  padding: 14px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  z-index: 50; box-shadow: 0 -4px 24px rgba(0,0,0,.08);
+  flex-wrap: wrap;
+  transition: background .3s;
+}
+.bar-info { display: flex; align-items: center; gap: 10px; }
+.bar-step-badge {
+  padding: 5px 14px; border-radius: 99px;
+  background: var(--g600); color: #fff;
+  font-size: 12px; font-weight: 700;
+}
+.bar-text { font-size: 13px; font-weight: 600; color: var(--ink); }
+.bar-actions { display: flex; gap: 8px; }
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .comm-grid { grid-template-columns: 1fr; }
+  .step-trail { display: none; }
+  .container { padding: 24px 14px 120px; }
+  .ai-avatar-ring { width: 150px; height: 150px; }
+  .page-title { font-size: 22px; }
+}
+
+.nav-link-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--chip-bg); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  transition: all .15s; font-family: inherit;
+}
+.nav-link-btn:hover { border-color: var(--g500); background: var(--surface); transform: translateY(-1px); }
+.user-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--chip-bg); border: 1.5px solid var(--border);
+  border-radius: 99px; padding: 4px 12px 4px 4px; font-size: 12px; font-weight: 600;
+  color: var(--ink); cursor: pointer; transition: all .15s;
+}
+.user-pill:hover { border-color: var(--g500); }
+.user-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--g700), var(--g500));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ NAVBAR ══════════════════ -->
+<nav class="nav">
+  <div class="nav-logo" onclick="window.location.href='index.html'">
+    <div class="logo-icon">
+      <svg width="22" height="15" viewBox="0 0 38 22">
+        <circle cx="12" cy="11" r="10" fill="#fff" fill-opacity=".9"/>
+        <circle cx="26" cy="11" r="10" fill="none" stroke="#fff" stroke-width="2.2"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">EchoTwins <span>AI</span></div>
+      <div class="logo-sub">Your Cognitive Learning Partner</div>
+    </div>
+  </div>
+
+  <!-- Step Trail -->
+  <div class="step-trail" id="step-trail">
+    <div class="trail-dot-wrap">
+      <div class="trail-dot active" id="dot1"></div>
+      <span class="trail-label active" id="lbl1">Question</span>
+    </div>
+    <div class="trail-line" id="line1"></div>
+    <div class="trail-dot-wrap">
+      <div class="trail-dot" id="dot2"></div>
+      <span class="trail-label" id="lbl2">AI Session</span>
+    </div>
+    <div class="trail-line" id="line2"></div>
+    <div class="trail-dot-wrap">
+      <div class="trail-dot" id="dot3"></div>
+      <span class="trail-label" id="lbl3">Approaches</span>
+    </div>
+    <div class="trail-line" id="line3"></div>
+    <div class="trail-dot-wrap">
+      <div class="trail-dot" id="dot4"></div>
+      <span class="trail-label" id="lbl4">Answer</span>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <a href="index.html" class="nav-link-btn" title="Home Landing Page">🏠 Home</a>
+    <a href="dashboard.html" class="nav-link-btn" title="Dashboard">📊 Dashboard</a>
+    <div class="user-pill" id="nav-user-pill" onclick="window.location.href='dashboard.html#profile'" title="Profile">
+      <div class="user-avatar" id="nav-user-avatar">U</div>
+      <span id="nav-user-name">Learner</span>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+      <div class="theme-toggle-ball" id="theme-ball">☀️</div>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     PAGE 1 — QUESTION INPUT
+══════════════════════════════════════════ -->
+<div class="page active" id="page1">
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-badge">📝 Step 1 of 4</div>
+    <h1 class="page-title">What's your question?</h1>
+    <p class="page-sub">Type, speak, or paste any question. Your AI solver will guide you through multiple approaches and provide the exact verified answer.</p>
+  </div>
+
+  <div class="card card-green" style="margin-bottom:20px">
+    <div class="q-input-wrap">
+      <div class="q-input-toolbar">
+        <span class="q-input-label">📝 Your Question</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-ghost" onclick="toggleVoiceInput('q-textarea')" title="Dictate question with mic">🎤 Speak</button>
+          <button class="btn-ghost" onclick="document.getElementById('q-textarea').value=''">Clear ✕</button>
+        </div>
+      </div>
+      <textarea id="q-textarea" rows="6" placeholder="Type or dictate your question here…
+
+e.g. 'A train travels 120 km at 60 km/h and returns at 40 km/h. What is the average speed for the whole journey?'"></textarea>
+    </div>
+
+    <!-- Upload option -->
+    <div class="upload-strip" onclick="document.getElementById('img-upload').click()">
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">
+        <strong>Upload a photo of your question</strong>
+        Click to upload an image of a textbook page, screenshot, or handwritten note
+      </div>
+      <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+    </div>
+
+    <!-- Category chips -->
+    <div style="margin-top:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--g700);margin-bottom:10px">📚 Category (optional):</div>
+      <div class="subject-chips">
+        <div class="chip active" onclick="selectChip(this)">🔢 Mathematics</div>
+        <div class="chip" onclick="selectChip(this)">⚡ Physics</div>
+        <div class="chip" onclick="selectChip(this)">⚗️ Chemistry</div>
+        <div class="chip" onclick="selectChip(this)">🌿 Biology</div>
+        <div class="chip" onclick="selectChip(this)">📖 History</div>
+        <div class="chip" onclick="selectChip(this)">🌍 Geography</div>
+        <div class="chip" onclick="selectChip(this)">💡 General Knowledge</div>
+        <div class="chip" onclick="selectChip(this)">📐 Engineering</div>
+        <div class="chip" onclick="selectChip(this)">💼 Economics</div>
+        <div class="chip" onclick="selectChip(this)">🤔 Logic / Puzzles</div>
+      </div>
+    </div>
+
+    <div class="q-options">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;font-weight:600;color:var(--muted)">Difficulty:</span>
+        <button class="chip" style="border-radius:99px;padding:6px 16px;font-size:12px" onclick="selectDiff(this,'easy')">😊 Easy</button>
+        <button class="chip active" style="border-radius:99px;padding:6px 16px;font-size:12px" onclick="selectDiff(this,'medium')">🎯 Medium</button>
+        <button class="chip" style="border-radius:99px;padding:6px 16px;font-size:12px" onclick="selectDiff(this,'hard')">🔥 Hard</button>
+      </div>
+      <button class="btn-primary" onclick="goToPage(2)">
+        Start AI Session →
+      </button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 2 — AI FACE + AUDIO/VIDEO SESSION
+══════════════════════════════════════════ -->
+<div class="page" id="page2">
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-badge">🤖 Step 2 of 4</div>
+    <h1 class="page-title">AI Session — Talk to Your Twin</h1>
+    <p class="page-sub">Communicate via voice or text before solving. Share your current thinking.</p>
+  </div>
+
+  <!-- Question recap -->
+  <div style="background:var(--chip-bg);border:1.8px solid var(--g200);border-radius:14px;padding:14px 20px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start">
+    <span style="font-size:18px;flex-shrink:0">📌</span>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Your Question:</div>
+      <div id="q-recap" style="font-size:13px;color:var(--ink);line-height:1.65;font-style:italic"></div>
+    </div>
+  </div>
+
+  <!-- AI Avatar -->
+  <div class="ai-stage">
+    <div style="position:relative;display:inline-block">
+      <div class="ai-pulse"></div>
+      <div class="ai-pulse" style="animation-delay:.6s"></div>
+      <div class="ai-avatar-ring" id="avatar-ring">
+        <svg class="ai-face-svg" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="65" cy="65" r="54" fill="#0D2F18" stroke="#22C55E" stroke-width="2"/>
+          <line x1="25" y1="65" x2="105" y2="65" stroke="#22C55E" stroke-width=".5" stroke-opacity=".3"/>
+          <line x1="65" y1="25" x2="65" y2="105" stroke="#22C55E" stroke-width=".5" stroke-opacity=".3"/>
+          <circle cx="65" cy="65" r="30" stroke="#22C55E" stroke-width=".5" stroke-opacity=".2" stroke-dasharray="4 4"/>
+          <rect x="42" y="50" width="16" height="10" rx="5" fill="#22C55E" id="left-eye"/>
+          <rect x="72" y="50" width="16" height="10" rx="5" fill="#22C55E" id="right-eye"/>
+          <circle cx="65" cy="68" r="2" fill="#16A34A"/>
+          <path d="M52 80 Q65 90 78 80" stroke="#22C55E" stroke-width="2.5" stroke-linecap="round" fill="none" id="ai-mouth"/>
+        </svg>
+      </div>
+    </div>
+    <div class="ai-name">EchoTwins AI</div>
+    <div class="ai-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="ai-status-txt">AI ready to solve your problem</span>
+    </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+      <div class="waveform paused" id="waveform">
+        <div class="wv"></div><div class="wv"></div><div class="wv"></div><div class="wv"></div>
+        <div class="wv"></div><div class="wv"></div><div class="wv"></div><div class="wv"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:relative;max-width:580px;margin:20px auto 0;">
+    <div class="ai-bubble" id="ai-bubble">
+      💬 <strong>Hello!</strong> I'm ready to solve your question using multiple approaches and calculate the exact final answer. Click <strong>"See Approaches"</strong> below to proceed!
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:6px;gap:8px">
+      <button class="btn-ghost" id="tts-toggle-btn" onclick="toggleTts()" title="Toggle voice read-aloud">
+        <span>🔊</span> AI Voice: <strong id="tts-status-txt">On</strong>
+      </button>
+      <button class="btn-ghost" onclick="speakCurrentBubble()" title="Replay voice">
+        <span>▶️</span> Replay
+      </button>
+    </div>
+  </div>
+
+  <div class="reply-area" style="margin-top:24px">
+    <label>📩 Have thoughts or initial ideas? (optional):</label>
+    <div class="reply-row">
+      <button type="button" class="btn-ghost" onclick="toggleVoiceInput('p2-reply')" title="Speak with mic" style="font-size:18px;padding:8px 12px;background:var(--chip-bg);border:1.5px solid var(--border)">🎤</button>
+      <input type="text" id="p2-reply" placeholder="Share any initial thoughts or instincts…">
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px">
+    <button class="btn-outline" onclick="goToPage(1)">← Back</button>
+    <button class="btn-primary" onclick="goToPage(3)">See Approaches →</button>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 3 — APPROACHES
+══════════════════════════════════════════ -->
+<div class="page" id="page3">
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-badge">💡 Step 3 of 4</div>
+    <h1 class="page-title">Solving Approaches</h1>
+    <p class="page-sub">Explore the distinct approaches generated by EchoTwins AI for your question.</p>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-box" id="solve-loading">
+    <div class="spinner"></div>
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">Analyzing your question with AI…</h3>
+    <p style="font-size:13px;color:var(--muted)">Computing 3 distinct approaches and verifying the exact solution…</p>
+  </div>
+
+  <!-- Error Banner -->
+  <div class="error-banner" id="solve-error">
+    <div>
+      <strong>⚠️ Error:</strong>
+      <span id="error-msg" style="margin-left:6px">Something went wrong.</span>
+    </div>
+    <button class="btn-outline" id="error-retry-btn" style="background:#fff;border-color:#FCA5A5;padding:8px 16px;font-size:12px;color:#991B1B">🔄 Try Again</button>
+  </div>
+
+  <!-- Approaches Container -->
+  <div id="approaches-container"></div>
+
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:24px">
+    <button class="btn-outline" onclick="goToPage(2)">← Back to Session</button>
+    <button class="btn-primary" id="btn-to-answer" onclick="goToPage(4)">See Exact Answer →</button>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 4 — EXACT ANSWER
+══════════════════════════════════════════ -->
+<div class="page" id="page4">
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-badge">✅ Step 4 of 4</div>
+    <h1 class="page-title">Exact Final Answer</h1>
+    <p class="page-sub">Verified solution with step-by-step breakdown.</p>
+  </div>
+
+  <!-- Answer Hero -->
+  <div class="answer-hero">
+    <div class="answer-hero-label">✅ Final Answer</div>
+    <div class="answer-hero-text" id="final-answer">Average Speed = 48 km/h</div>
+    <div class="answer-hero-sub" id="final-context"></div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn-outline" id="btn-tts-answer" onclick="toggleReadAnswer()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);padding:8px 16px;font-size:13px">
+        🔊 Read Answer Aloud
+      </button>
+      <button class="btn-outline" onclick="stopSpeech()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);padding:8px 16px;font-size:13px">
+        ⏹️ Stop Voice
+      </button>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn-outline" onclick="goToPage(3)">← Review Approaches</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn-outline" onclick="copyAnswer()">📋 Copy Answer</button>
+      <button class="btn-primary" onclick="solveNew()">✨ Solve New Question →</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     BOTTOM BAR
+══════════════════════════════════════════ -->
+<div class="bottom-bar">
+  <div class="bar-info">
+    <span class="bar-step-badge" id="bar-badge">Step 1</span>
+    <span class="bar-text" id="bar-text">Write your question to begin</span>
+  </div>
+  <div class="bar-actions">
+    <button class="btn-outline" style="padding:8px 16px;font-size:12px" onclick="solveNew()">🔄 Start Over</button>
+    <button class="btn-primary" style="padding:9px 20px;font-size:12px" id="bar-cta" onclick="goToPage(2)">Start AI Session →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+let currentPage = 1;
+const totalPages = 4;
+let selectedDifficulty = 'medium';
+let selectedCategory   = 'Mathematics';
+let speechEnabled      = true;
+let recognition        = null;
+let isRecordingVoice   = false;
+let currentSolution    = null;
+let isSpeakingAnswer   = false;
+
+/* ── HTML ESCAPING FOR XSS PREVENTION ── */
+function escapeHtml(str) {
+  if (str == null) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+/* ── THEME ── */
+function toggleTheme() {
+  const html   = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-ball').textContent = isDark ? '☀️' : '🌙';
+}
+
+/* ── USER BADGE & AUTH ── */
+async function initUserBadge() {
+  try {
+    const res = await fetch('/api/auth/me');
+    const data = await res.json();
+    if (data.authenticated && data.student) {
+      localStorage.setItem('et_user', JSON.stringify(data.student));
+      const nameEl = document.getElementById('nav-user-name');
+      const avEl   = document.getElementById('nav-user-avatar');
+      if (nameEl) nameEl.textContent = data.student.name || data.student.email;
+      if (avEl)   avEl.textContent   = (data.student.name || data.student.email || 'U')[0].toUpperCase();
+      return;
+    }
+  } catch(e) {}
+
+  // Local storage display fallback
+  const raw = localStorage.getItem('et_user');
+  const user = raw ? JSON.parse(raw) : { name: 'Learner' };
+  const initial = (user.name || 'U')[0].toUpperCase();
+  const nameEl = document.getElementById('nav-user-name');
+  const avEl   = document.getElementById('nav-user-avatar');
+  if (nameEl) nameEl.textContent = user.name || 'Learner';
+  if (avEl)   avEl.textContent   = initial;
+}
+
+/* ── PARSE URL PARAMETERS ── */
+function parseUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const q = params.get('q');
+  const subj = params.get('subject');
+  if (q) {
+    document.getElementById('q-textarea').value = q;
+  }
+  if (subj) {
+    selectedCategory = subj;
+    document.querySelectorAll('.subject-chips .chip').forEach(c => {
+      if (c.textContent.toLowerCase().includes(subj.toLowerCase())) {
+        c.classList.add('active');
+      } else {
+        c.classList.remove('active');
+      }
+    });
+  }
+}
+
+/* ── PAGE NAVIGATION ── */
+function goToPage(n) {
+  if (n === 2 && currentPage === 1) {
+    const q = document.getElementById('q-textarea').value.trim();
+    if (!q) {
+      const ta = document.getElementById('q-textarea');
+      ta.style.borderColor = '#EF4444'; ta.focus();
+      ta.placeholder = '⚠️ Please enter your question first!';
+      setTimeout(() => { ta.style.borderColor = ''; ta.placeholder = 'Type your question here…'; }, 2500);
+      return;
+    }
+    document.getElementById('q-recap').textContent = q;
+  }
+
+  // Trigger AI solver when advancing to page 3
+  if (n === 3) {
+    solveQuestionWithAI();
+  }
+
+  for (let i = 1; i <= totalPages; i++) {
+    document.getElementById('page' + i).classList.toggle('active', i === n);
+  }
+  currentPage = n;
+  updateTrail(n);
+  updateBottomBar(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Read answer aloud automatically upon reaching Step 4
+  if (n === 4 && currentSolution && speechEnabled) {
+    speakText(currentSolution.answer);
+  }
+}
+
+/* ── AI SOLVER CALL (POST /api/solve) ── */
+async function solveQuestionWithAI() {
+  const question = document.getElementById('q-textarea').value.trim();
+  if (!question) {
+    goToPage(1);
+    return;
+  }
+
+  const loadingEl = document.getElementById('solve-loading');
+  const errorEl   = document.getElementById('solve-error');
+  const appEl     = document.getElementById('approaches-container');
+  const btnNext   = document.getElementById('btn-to-answer');
+
+  loadingEl.style.display = 'block';
+  errorEl.style.display   = 'none';
+  appEl.innerHTML         = '';
+  if (btnNext) btnNext.disabled = true;
+
+  try {
+    const res = await fetch('/api/solve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ question })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        showError('Please sign in to solve questions with EchoTwins AI.', () => {
+          window.location.href = 'login.html';
+        }, 'Sign In →');
+        return;
+      }
+      throw new Error(data.error || 'Server returned error ' + res.status);
+    }
+
+    currentSolution = data;
+    renderSolution(data);
+    loadingEl.style.display = 'none';
+    if (btnNext) btnNext.disabled = false;
+
+  } catch (err) {
+    loadingEl.style.display = 'none';
+    showError(err.message || 'Could not connect to AI solver.', () => solveQuestionWithAI(), '🔄 Try Again');
+  }
+}
+
+function showError(msg, actionFn, actionLabel) {
+  const errorEl  = document.getElementById('solve-error');
+  const errorMsg = document.getElementById('error-msg');
+  const retryBtn = document.getElementById('error-retry-btn');
+  errorMsg.textContent = msg;
+  retryBtn.textContent = actionLabel || '🔄 Try Again';
+  retryBtn.onclick = actionFn;
+  errorEl.style.display = 'flex';
+}
+
+function renderSolution(data) {
+  const container = document.getElementById('approaches-container');
+  container.innerHTML = '';
+
+  const approaches = data.approaches || [];
+  approaches.forEach((ap, idx) => {
+    const title = typeof ap === 'string' ? `Approach ${idx + 1}` : (ap.title || `Approach ${idx + 1}`);
+    const body  = typeof ap === 'string' ? ap : (ap.body || ap.description || '');
+
+    const card = document.createElement('div');
+    card.className = `approach-card ${idx === 0 ? 'selected' : ''}`;
+    card.onclick = () => {
+      document.querySelectorAll('.approach-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    };
+
+    card.innerHTML = `
+      <div class="approach-header">
+        <div class="approach-num">${idx + 1}</div>
+        <div class="approach-title">${escapeHtml(title)}</div>
+      </div>
+      <div class="approach-body">${escapeHtml(body)}</div>
+    `;
+    container.appendChild(card);
+  });
+
+  // Page 4 Final Answer
+  const finalAns = document.getElementById('final-answer');
+  const finalCtx = document.getElementById('final-context');
+  if (finalAns) finalAns.textContent = data.answer || 'Answer calculated';
+  if (finalCtx) finalCtx.textContent = `Provider: ${escapeHtml(data.provider || 'AI')} · Saved securely to question history.`;
+
+  // Update bubble in Page 2
+  const bubble = document.getElementById('ai-bubble');
+  if (bubble) {
+    bubble.innerHTML = `💬 <strong>Great news!</strong> I've solved your question with ${approaches.length} distinct approaches. Ready to review!`;
+  }
+}
+
+/* ── SPEECH SYNTHESIS (Voice read-aloud) ── */
+function speakText(text) {
+  if (!speechEnabled || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/<[^>]*>/g, '').replace(/[#*_`]/g, '');
+  const utter = new SpeechSynthesisUtterance(clean);
+  utter.rate = 1.0;
+  utter.pitch = 1.0;
+  const wave = document.getElementById('waveform');
+  if (wave) wave.classList.remove('paused');
+  utter.onend = () => {
+    if (wave) wave.classList.add('paused');
+    isSpeakingAnswer = false;
+  };
+  utter.onerror = () => {
+    if (wave) wave.classList.add('paused');
+    isSpeakingAnswer = false;
+  };
+  window.speechSynthesis.speak(utter);
+  isSpeakingAnswer = true;
+}
+
+function stopSpeech() {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  const wave = document.getElementById('waveform');
+  if (wave) wave.classList.add('paused');
+  isSpeakingAnswer = false;
+}
+
+function toggleReadAnswer() {
+  if (isSpeakingAnswer) {
+    stopSpeech();
+  } else if (currentSolution && currentSolution.answer) {
+    speakText(currentSolution.answer);
+  }
+}
+
+function toggleTts() {
+  speechEnabled = !speechEnabled;
+  if (!speechEnabled) stopSpeech();
+  const txt = document.getElementById('tts-status-txt');
+  if (txt) txt.textContent = speechEnabled ? 'On' : 'Off';
+  const btn = document.getElementById('tts-toggle-btn');
+  if (btn) btn.querySelector('span').textContent = speechEnabled ? '🔊' : '🔇';
+}
+
+function speakCurrentBubble() {
+  const bubble = document.getElementById('ai-bubble');
+  if (bubble) speakText(bubble.textContent);
+}
+
+/* ── VOICE INPUT (Web Speech API) ── */
+function toggleVoiceInput(targetId) {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    alert("Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.");
+    return;
+  }
+
+  if (isRecordingVoice && recognition) {
+    recognition.stop();
+    isRecordingVoice = false;
+    return;
+  }
+
+  try {
+    recognition = new SpeechRec();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      isRecordingVoice = true;
+      const target = document.getElementById(targetId);
+      if (target) target.placeholder = "Listening… Speak now…";
+    };
+
+    recognition.onresult = (e) => {
+      let transcript = '';
+      for (let i = e.resultIndex; i < e.results.length; ++i) {
+        transcript += e.results[i][0].transcript;
+      }
+      const target = document.getElementById(targetId);
+      if (target) target.value = transcript;
+    };
+
+    recognition.onend = () => {
+      isRecordingVoice = false;
+    };
+
+    recognition.start();
+  } catch(err) {
+    console.error("Speech recognition error:", err);
+  }
+}
+
+/* ── PROGRESS TRAIL ── */
+function updateTrail(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('dot'+i).className = 'trail-dot'+(i<n?' done':i===n?' active':'');
+    document.getElementById('lbl'+i).className = 'trail-label'+(i===n?' active':'');
+    if (i<4) document.getElementById('line'+i).className = 'trail-line'+(i<n?' done':'');
+  }
+}
+
+/* ── BOTTOM BAR ── */
+function updateBottomBar(n) {
+  const badges = ['Step 1','Step 2','Step 3','Step 4'];
+  const texts  = ['Write your question to begin','Communicate with your AI twin','Review the solving approaches','Your exact answer is ready!'];
+  const ctas   = ['Start AI Session →','See Approaches →','See Exact Answer →','Solve New Question →'];
+  const acts   = [()=>goToPage(2), ()=>goToPage(3), ()=>goToPage(4), solveNew];
+  document.getElementById('bar-badge').textContent = badges[n-1];
+  document.getElementById('bar-text').textContent  = texts[n-1];
+  const btn = document.getElementById('bar-cta');
+  btn.textContent = ctas[n-1];
+  btn.onclick = acts[n-1];
+}
+
+/* ── CHIPS & CONTROLS ── */
+function selectChip(el) {
+  document.querySelectorAll('.subject-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedCategory = el.textContent.replace(/^[^\w]+/, '').trim();
+}
+
+function selectDiff(el, level) {
+  document.querySelectorAll('.q-options .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedDifficulty = level;
+}
+
+function handleImageUpload(input) {
+  if (input.files && input.files[0]) {
+    const name = input.files[0].name;
+    document.querySelector('.upload-text').innerHTML =
+      '<strong>✅ Image uploaded: ' + escapeHtml(name) + '</strong>Problem image attached.';
+  }
+}
+
+function copyAnswer() {
+  const answer = document.getElementById('final-answer').textContent;
+  navigator.clipboard.writeText(answer)
+    .then(() => alert('✅ Answer copied to clipboard!'))
+    .catch(() => alert('Answer: ' + answer));
+}
+
+function solveNew() {
+  stopSpeech();
+  document.getElementById('q-textarea').value = '';
+  document.getElementById('p2-reply').value   = '';
+  currentSolution = null;
+  goToPage(1);
+}
+
+/* ── BOOTSTRAP ── */
+window.addEventListener('load', () => {
+  initUserBadge();
+  parseUrlParams();
+  updateTrail(1);
+  updateBottomBar(1);
+});
+</script>
+</body>
+</html>
