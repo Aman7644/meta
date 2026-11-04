@@ -7,6 +7,7 @@ Supports Supabase PostgreSQL via connection pooling (port 6543).
 
 import os
 import sys
+import ssl
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
@@ -21,6 +22,8 @@ is_placeholder = (
     or "YOURREF" in raw_url
     or "YOURPASSWORD" in raw_url
     or "YOUR_PASSWORD" in raw_url
+    or "YOUR-PASSWORD" in raw_url
+    or "[YOUR-PASSWORD]" in raw_url
     or "xxxxxxxxxxxx" in raw_url
 )
 
@@ -31,9 +34,8 @@ def _build_engine():
             print("  [db] Using local SQLite (echotwins.db) because ALLOW_SQLITE=true.")
             return create_engine("sqlite:///echotwins.db")
         else:
-            sys.stderr.write("\n[FATAL DATABASE ERROR] DATABASE_URL is empty or contains placeholder values, and ALLOW_SQLITE is not set to true.\n")
-            sys.stderr.write("To use PostgreSQL, configure a valid DATABASE_URL in .env.\n")
-            sys.stderr.write("To permit local SQLite fallback, set ALLOW_SQLITE=true in .env.\n\n")
+            sys.stderr.write("\n[FATAL DATABASE ERROR] DATABASE_URL contains placeholder values (e.g. [YOUR-PASSWORD]), and ALLOW_SQLITE is not set to true.\n")
+            sys.stderr.write("To use PostgreSQL, replace [YOUR-PASSWORD] with your actual Supabase database password in .env.\n\n")
             sys.exit(1)
 
     url = raw_url
@@ -42,10 +44,15 @@ def _build_engine():
         try:
             import psycopg  # noqa: F401
             url = url.replace("postgres://", "postgresql://", 1)
+            connect_args = {"options": "-c statement_timeout=10000"}
         except ImportError:
             # Fall back to pure-python pg8000 driver
             url = url.replace("postgresql://", "postgresql+pg8000://", 1)
             url = url.replace("postgres://", "postgresql+pg8000://", 1)
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            connect_args = {"ssl_context": ssl_ctx, "timeout": 10}
 
     try:
         if "sqlite" in url:
@@ -60,7 +67,7 @@ def _build_engine():
             max_overflow=10,
             pool_pre_ping=True,
             pool_recycle=300,
-            connect_args={"options": "-c statement_timeout=10000"} if "pg8000" not in url else {},
+            connect_args=connect_args,
             execution_options={"no_parameters": False},
         )
         # Verify connection immediately
@@ -74,8 +81,8 @@ def _build_engine():
             print(f"  [db] WARNING: Failed to connect to remote database: {err}. Falling back to SQLite because ALLOW_SQLITE=true.")
             return create_engine("sqlite:///echotwins.db")
         else:
-            sys.stderr.write(f"\n[FATAL DATABASE ERROR] Failed to connect to database at DATABASE_URL: {err}\n")
-            sys.stderr.write("Set ALLOW_SQLITE=true in .env if you wish to fall back to SQLite for local development.\n\n")
+            err_type = type(err).__name__
+            sys.stderr.write(f"\n[FATAL DATABASE ERROR] Failed to connect to database at DATABASE_URL ({err_type}): {err}\n\n")
             sys.exit(1)
 
 
@@ -121,4 +128,10 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_questions_student_created
                 ON questions (student_id, created_at DESC)
         """))
+
+        if not is_sqlite:
+            # Enable Row Level Security as requested
+            conn.execute(text("ALTER TABLE students ENABLE ROW LEVEL SECURITY;"))
+            conn.execute(text("ALTER TABLE questions ENABLE ROW LEVEL SECURITY;"))
+
         conn.commit()
