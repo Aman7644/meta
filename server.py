@@ -598,6 +598,24 @@ class Handler(SimpleHTTPRequestHandler):
             except APIConnectionError:
                 return self._json(504, {"error": "AI provider connection timed out. Please try again."})
             except APIError as api_err:
+                # If vision model threw an error, fall back to text model
+                if actual_model != model or user_content != question:
+                    try:
+                        text_messages = [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": question}
+                        ]
+                        resp = client.chat.completions.create(
+                            model=model,
+                            messages=text_messages,
+                            temperature=0.2,
+                            max_tokens=1200,
+                            response_format={"type": "json_object"}
+                        )
+                        response_text = resp.choices[0].message.content or ""
+                        break
+                    except Exception as fallback_err:
+                        return self._json(502, {"error": f"AI provider error: {str(fallback_err)}"})
                 return self._json(502, {"error": f"AI provider error: {str(api_err)}"})
             except Exception as err:
                 return self._json(500, {"error": f"Unexpected error: {str(err)}"})
