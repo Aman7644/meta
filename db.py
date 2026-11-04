@@ -2,7 +2,7 @@
 db.py — EchoTwins AI database connection layer (Supabase PostgreSQL / SQLite)
 
 Fails loudly if DATABASE_URL fails to connect unless ALLOW_SQLITE=true is set in .env.
-Supports Supabase PostgreSQL via connection pooling (port 6543).
+Supports Supabase PostgreSQL via connection pooling (port 6543) with verified SSL.
 """
 
 import os
@@ -39,19 +39,34 @@ def _build_engine():
             sys.exit(1)
 
     url = raw_url
+
+    # Resolve CA certificate path (configurable via SSL_CA_FILE, defaults to supabase-ca.crt)
+    ca_filename = os.environ.get("SSL_CA_FILE", "supabase-ca.crt").strip()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    ca_file_path = ca_filename if os.path.isabs(ca_filename) else os.path.join(base_dir, ca_filename)
+
     # If postgresql URL without explicit driver, select driver
     if url.startswith("postgresql://") or url.startswith("postgres://"):
         try:
             import psycopg  # noqa: F401
             url = url.replace("postgres://", "postgresql://", 1)
-            connect_args = {"options": "-c statement_timeout=10000"}
+            connect_args = {
+                "options": "-c statement_timeout=10000",
+                "sslmode": "verify-full",
+                "sslrootcert": ca_file_path,
+            }
         except ImportError:
             # Fall back to pure-python pg8000 driver
             url = url.replace("postgresql://", "postgresql+pg8000://", 1)
             url = url.replace("postgres://", "postgresql+pg8000://", 1)
-            ssl_ctx = ssl.create_default_context()
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
+
+            # Verified SSL context with loaded CA certificate
+            if os.path.exists(ca_file_path):
+                ssl_ctx = ssl.create_default_context(cafile=ca_file_path)
+            else:
+                ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = True
+            ssl_ctx.verify_mode = ssl.CERT_REQUIRED
             connect_args = {"ssl_context": ssl_ctx, "timeout": 10}
 
     try:
@@ -73,7 +88,7 @@ def _build_engine():
         # Verify connection immediately
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        print("  [db] Connected to PostgreSQL (Supabase) successfully.")
+        print("  [db] Connected to PostgreSQL (Supabase) successfully with verified SSL.")
         return engine
 
     except Exception as err:
@@ -130,7 +145,6 @@ def init_db():
         """))
 
         if not is_sqlite:
-            # Enable Row Level Security as requested
             conn.execute(text("ALTER TABLE students ENABLE ROW LEVEL SECURITY;"))
             conn.execute(text("ALTER TABLE questions ENABLE ROW LEVEL SECURITY;"))
 
