@@ -207,7 +207,7 @@ body {
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="nav-logo">
+  <div class="nav-logo" onclick="window.location.href='index.html'" style="cursor:pointer">
     <div class="logo-icon">🛡️</div>
     <div>
       <div class="logo-text">EchoTwins <span>Admin</span></div>
@@ -215,6 +215,8 @@ body {
     </div>
   </div>
   <div class="nav-right" id="nav-right" style="display:none">
+    <a href="index.html"     class="btn btn-outline">🏠 Home</a>
+    <a href="echotwins_solver.html" class="btn btn-outline">🤖 AI Solver</a>
     <a href="dashboard.html" class="btn btn-outline">📊 Dashboard</a>
     <a href="login.html"     class="btn btn-outline">🔑 Login Page</a>
     <button class="btn btn-green" onclick="loadStudents()">🔄 Refresh</button>

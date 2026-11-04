@@ -483,6 +483,7 @@ input[type=text] { padding: 13px 16px; font-size: 14px; }
   font-size: 12px; font-weight: 800;
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
@@ -566,13 +567,21 @@ e.g. 'A train travels 120 km at 60 km/h and returns at 40 km/h. What is the aver
     </div>
 
     <!-- Upload option -->
-    <div class="upload-strip" onclick="document.getElementById('img-upload').click()">
+    <div class="upload-strip" id="upload-strip" onclick="document.getElementById('img-upload').click()">
       <div class="upload-icon">📷</div>
-      <div class="upload-text">
-        <strong>Upload a photo of your question</strong>
-        Click to upload an image of a textbook page, screenshot, or handwritten note
+      <div class="upload-text" id="upload-text">
+        <strong>Upload a photo of your question (Picture-to-Answer AI)</strong>
+        <span>Click or tap to upload an image of a textbook page, handwritten note, or screenshot</span>
       </div>
       <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+    </div>
+    <div id="image-preview-container" style="display:none;margin-top:12px;padding:12px 16px;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;align-items:center;gap:14px">
+      <img id="image-preview-img" style="max-height:75px;max-width:110px;border-radius:8px;object-fit:cover;border:1px solid var(--border)">
+      <div style="flex:1">
+        <div id="image-preview-title" style="font-size:13px;font-weight:700;color:var(--ink)"></div>
+        <div id="image-ocr-status" style="font-size:12px;color:var(--g700);font-weight:600;margin-top:2px">🔍 Reading question text from image…</div>
+      </div>
+      <button type="button" class="btn-ghost" onclick="removeUploadedImage(event)" style="padding:6px 12px;font-size:12px;color:#EF4444;border-color:rgba(239,68,68,.3)" title="Remove photo">✕ Remove</button>
     </div>
 
     <!-- Category chips -->
@@ -892,7 +901,8 @@ function goToPage(n) {
 /* ── AI SOLVER CALL (POST /api/solve) ── */
 async function solveQuestionWithAI() {
   const question = document.getElementById('q-textarea').value.trim();
-  if (!question) {
+  if (!question && !currentUploadedImageBase64) {
+    alert('Please enter a question or upload a photo of your problem.');
     goToPage(1);
     return;
   }
@@ -912,7 +922,10 @@ async function solveQuestionWithAI() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ question })
+      body: JSON.stringify({
+        question: question || 'Please solve the question in the attached photo.',
+        image: currentUploadedImageBase64 || null
+      })
     });
 
     const data = await res.json();
@@ -1120,11 +1133,72 @@ function selectDiff(el, level) {
   selectedDifficulty = level;
 }
 
+let currentUploadedImageBase64 = null;
+
 function handleImageUpload(input) {
-  if (input.files && input.files[0]) {
-    const name = input.files[0].name;
-    document.querySelector('.upload-text').innerHTML =
-      '<strong>✅ Image uploaded: ' + escapeHtml(name) + '</strong>Problem image attached.';
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const previewContainer = document.getElementById('image-preview-container');
+  const previewImg = document.getElementById('image-preview-img');
+  const previewTitle = document.getElementById('image-preview-title');
+  const ocrStatus = document.getElementById('image-ocr-status');
+  const qTextArea = document.getElementById('q-textarea');
+
+  previewTitle.textContent = file.name;
+  previewContainer.style.display = 'flex';
+  ocrStatus.textContent = '🔍 Reading question text from image…';
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    currentUploadedImageBase64 = e.target.result;
+    previewImg.src = currentUploadedImageBase64;
+
+    if (window.Tesseract) {
+      try {
+        const ret = await Tesseract.recognize(file, 'eng');
+        const extracted = (ret && ret.data && ret.data.text) ? ret.data.text.trim() : '';
+
+        if (extracted.length > 5) {
+          qTextArea.value = extracted;
+          updateCharCounter(qTextArea);
+          ocrStatus.textContent = '✅ Question extracted from photo! Review or edit above.';
+          ocrStatus.style.color = 'var(--g700)';
+        } else {
+          ocrStatus.textContent = '📷 Photo attached. Vision AI will solve it directly.';
+          if (!qTextArea.value.trim()) {
+            qTextArea.value = 'Please solve the problem in the attached photo step-by-step with 3 approaches and the exact answer.';
+            updateCharCounter(qTextArea);
+          }
+        }
+      } catch (err) {
+        console.warn('OCR fallback to vision:', err);
+        ocrStatus.textContent = '📷 Photo attached. Vision AI will solve it directly.';
+        if (!qTextArea.value.trim()) {
+          qTextArea.value = 'Please solve the problem in the attached photo step-by-step with 3 approaches and the exact answer.';
+          updateCharCounter(qTextArea);
+        }
+      }
+    } else {
+      ocrStatus.textContent = '📷 Photo attached. Ready to solve.';
+      if (!qTextArea.value.trim()) {
+        qTextArea.value = 'Please solve the problem in the attached photo step-by-step with 3 approaches and the exact answer.';
+        updateCharCounter(qTextArea);
+      }
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeUploadedImage(e) {
+  if (e) e.stopPropagation();
+  currentUploadedImageBase64 = null;
+  const input = document.getElementById('img-upload');
+  if (input) input.value = '';
+  document.getElementById('image-preview-container').style.display = 'none';
+  const qTextArea = document.getElementById('q-textarea');
+  if (qTextArea.value.startsWith('Please solve the problem in the attached photo')) {
+    qTextArea.value = '';
+    updateCharCounter(qTextArea);
   }
 }
 

@@ -537,8 +537,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         body = self._body()
         question = (body.get("question", "") or "").strip()
+        image = body.get("image", None)
+
+        if not question and not image:
+            return self._json(400, {"error": "Question or image is required"})
+
         if not question:
-            return self._json(400, {"error": "Question is required"})
+            question = "Please analyze and solve the question in the attached photo."
+
         if len(question) > QUESTION_MAX_LEN:
             return self._json(400, {"error": f"Question exceeds maximum length of {QUESTION_MAX_LEN} characters"})
 
@@ -554,9 +560,21 @@ class Handler(SimpleHTTPRequestHandler):
             "Return ONLY the valid raw JSON object. Do not include markdown fences (```), commentary, or extra prose."
         )
 
+        # Support Vision / Picture to Answer
+        actual_model = model
+        if image and isinstance(image, str) and image.startswith("data:image"):
+            if provider == "groq" and "vision" not in model.lower():
+                actual_model = "llama-3.2-11b-vision-preview"
+            user_content = [
+                {"type": "text", "text": question},
+                {"type": "image_url", "image_url": {"url": image}}
+            ]
+        else:
+            user_content = question
+
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": question}
+            {"role": "user", "content": user_content}
         ]
 
         # Call AI provider with retry on 429
@@ -564,7 +582,7 @@ class Handler(SimpleHTTPRequestHandler):
         for attempt in range(2):
             try:
                 resp = client.chat.completions.create(
-                    model=model,
+                    model=actual_model,
                     messages=messages,
                     temperature=0.2,
                     max_tokens=1200,
@@ -607,7 +625,7 @@ class Handler(SimpleHTTPRequestHandler):
                 # Retry prompt once
                 try:
                     retry_resp = client.chat.completions.create(
-                        model=model,
+                        model=actual_model,
                         messages=[
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": f"Your previous response was not valid JSON. Provide ONLY the valid JSON object for this question:\n{question}"}
